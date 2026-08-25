@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lkres.app.core.BandColor
 import com.lkres.app.core.ColorCode
 import com.lkres.app.core.Eia96
@@ -46,7 +47,7 @@ fun ReferenceScreen() {
                 Spacer(Modifier.size(40.dp))
                 CellText("Tên", Modifier.weight(1.2f), header = true)
                 CellText("Digit", Modifier.weight(0.8f), header = true)
-                CellText("Nhân", Modifier.weight(1.3f), header = true)
+                CellText("Nhân", Modifier.weight(1.45f), header = true)
                 CellText("Dung sai", Modifier.weight(1.1f), header = true)
                 CellText("TCR", Modifier.weight(1.1f), header = true)
             }
@@ -60,7 +61,7 @@ fun ReferenceScreen() {
                 Swatch(c.argb)
                 CellText(c.label, Modifier.weight(1.2f))
                 CellText(ColorCode.DIGITS[c]?.toString() ?: "—", Modifier.weight(0.8f))
-                CellText("×${trim(ColorCode.MULTIPLIERS[c])}", Modifier.weight(1.3f))
+                CellText("×${trim(ColorCode.MULTIPLIERS[c])}", Modifier.weight(1.45f), compact = true)
                 CellText(
                     ColorCode.TOLERANCES[c]?.let { "±${trim(it)}%" } ?: "—",
                     Modifier.weight(1.1f)
@@ -183,12 +184,17 @@ private fun CellText(
     text: String,
     modifier: Modifier = Modifier,
     header: Boolean = false,
+    compact: Boolean = false,
     align: TextAlign? = null
 ) {
     Text(
         text,
         modifier = modifier,
-        style = if (header) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelSmall,
+        style = when {
+            header -> MaterialTheme.typography.titleSmall
+            compact -> MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+            else -> MaterialTheme.typography.labelSmall
+        },
         fontWeight = if (header) FontWeight.SemiBold else null,
         textAlign = align,
         maxLines = 1,
