@@ -42,7 +42,7 @@ import com.lkres.app.core.ResistorFormat
 import com.lkres.app.core.rolesFor
 import com.lkres.app.ui.resistor.ResistorCanvas
 
-private fun chipColor(c: BandColor): Color = Color(c.argb)
+internal fun chipColor(c: BandColor): Color = Color(c.argb)
 
 @Composable
 fun BandsScreen() {
@@ -128,6 +128,8 @@ fun BandsScreen() {
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            SearchSection(onApplyColors = state::applyColors)
+
             when (state.mode) {
                 BandsMode.AUTO -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
@@ -193,7 +195,7 @@ private fun roleTitle(role: BandRole): String = when (role) {
     BandRole.TCR -> "Hệ số nhiệt"
 }
 
-private fun optionsFor(role: BandRole): List<BandColor> = when (role) {
+internal fun optionsFor(role: BandRole): List<BandColor> = when (role) {
     BandRole.DIGIT -> ColorCode.DIGITS.keys.sortedBy { it.ordinal }
     BandRole.MULTIPLIER -> ColorCode.MULTIPLIERS.keys.sortedBy { it.ordinal }
     BandRole.TOLERANCE -> listOf(
@@ -203,7 +205,7 @@ private fun optionsFor(role: BandRole): List<BandColor> = when (role) {
     BandRole.TCR -> ColorCode.TCR.keys.sortedBy { it.ordinal }
 }
 
-private fun chipLabel(role: BandRole, c: BandColor): String = when (role) {
+internal fun chipLabel(role: BandRole, c: BandColor): String = when (role) {
     BandRole.DIGIT -> ColorCode.DIGITS.getValue(c).toString()
     BandRole.MULTIPLIER -> multiplierLabel(ColorCode.MULTIPLIERS.getValue(c))
     BandRole.TOLERANCE -> "±${trimNum(ColorCode.TOLERANCES.getValue(c))}%"
@@ -223,7 +225,7 @@ private fun multiplierLabel(m: Double): String = when {
 }
 
 @Composable
-private fun RoleChip(color: BandColor, label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun RoleChip(color: BandColor, label: String, selected: Boolean, onClick: () -> Unit) {
     val bg = chipColor(color)
     Box(
         Modifier
