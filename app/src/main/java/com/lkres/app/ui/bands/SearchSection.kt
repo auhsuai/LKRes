@@ -22,6 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +43,7 @@ import com.lkres.app.core.ResistorFormat
 import com.lkres.app.core.ValueParseResult
 import com.lkres.app.core.ValueParser
 import com.lkres.app.core.ValueToColors
+import com.lkres.app.data.LkResStore
 
 private sealed interface SearchUi {
     data object Idle : SearchUi
@@ -52,6 +54,7 @@ private sealed interface SearchUi {
 
 private val DEFAULT_TOLERANCE = BandColor.GOLD
 private const val SIX_BANDS = 6
+private const val FOUR_BANDS = 4
 private val CARD_WIDTH = 155.dp
 private val DOT_SIZE = 26.dp
 
@@ -67,11 +70,14 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
         onApplyColors(variant.colors + tolColor + tcrPart)
     }
 
-    fun showResults(ohms: Double) {
+    fun showResults(ohms: Double, queryForHistory: String? = null) {
         tolerances = emptyMap()
         tcrs = emptyMap()
         when (val enc = ValueToColors.encode(ohms)) {
-            is EncodingResult.Encodable -> ui = SearchUi.Results(ohms, enc.variants)
+            is EncodingResult.Encodable -> {
+                if (queryForHistory != null) LkResStore.addRecentSearch(queryForHistory)
+                ui = SearchUi.Results(ohms, enc.variants)
+            }
             is EncodingResult.NotEncodable -> ui = SearchUi.SuggestNearest(enc.nearestE24)
         }
     }
@@ -79,7 +85,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
     fun runSearch(raw: String) {
         when (val parsed = ValueParser.parse(raw)) {
             is ValueParseResult.Error -> ui = SearchUi.Failed(parsed.kind.message)
-            is ValueParseResult.Success -> showResults(parsed.ohms)
+            is ValueParseResult.Success -> showResults(parsed.ohms, raw)
         }
     }
 
@@ -88,6 +94,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
             is EncodingResult.Encodable -> {
                 tolerances = emptyMap()
                 tcrs = emptyMap()
+                LkResStore.addRecentSearch(ResistorFormat.format(nearestOhms))
                 ui = SearchUi.Results(nearestOhms, enc.variants)
             }
             is EncodingResult.NotEncodable -> Unit
@@ -112,6 +119,24 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
             Button(onClick = { runSearch(query) }) { Text("Tìm") }
         }
 
+        if (LkResStore.historyEnabled && LkResStore.recentSearches.isNotEmpty()) {
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                LkResStore.recentSearches.forEach { item ->
+                    SuggestionChip(
+                        onClick = {
+                            query = item
+                            runSearch(item)
+                        },
+                        label = { Text(item) }
+                    )
+                }
+            }
+        }
+
         when (val current = ui) {
             SearchUi.Idle -> Unit
             is SearchUi.Failed -> Text(
@@ -132,12 +157,20 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                     ResistorFormat.format(current.ohms),
                     style = MaterialTheme.typography.titleLarge
                 )
+                val visibleVariants = if (LkResStore.parallelResults) {
+                    current.variants
+                } else {
+                    listOfNotNull(
+                        current.variants.firstOrNull { it.bandCount == FOUR_BANDS }
+                            ?: current.variants.firstOrNull()
+                    )
+                }
                 FlowRow(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    current.variants.forEach { variant ->
+                    visibleVariants.forEach { variant ->
                         val count = variant.bandCount
                         val selectedTcr = if (count == SIX_BANDS) tcrs[count] else null
                         VariantCard(

@@ -26,7 +26,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,13 +39,14 @@ import com.lkres.app.core.CalcResult
 import com.lkres.app.core.ColorCode
 import com.lkres.app.core.ResistorFormat
 import com.lkres.app.core.rolesFor
+import com.lkres.app.data.LkResStore
 import com.lkres.app.ui.resistor.ResistorCanvas
 
 internal fun chipColor(c: BandColor): Color = Color(c.argb)
 
 @Composable
 fun BandsScreen() {
-    val state = remember { BandsState() }
+    val state = LkResStore.bands
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
 
@@ -75,7 +75,10 @@ fun BandsScreen() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(
-                onClick = { state.moveActive(-1) },
+                onClick = {
+                    state.moveActive(-1)
+                    LkResStore.persistBands()
+                },
                 enabled = state.activeBand > 0
             ) { Text("◀") }
 
@@ -98,7 +101,10 @@ fun BandsScreen() {
                                 },
                                 shape = RoundedCornerShape(10.dp)
                             )
-                            .clickable { state.setActiveBand(i) },
+                            .clickable {
+                                state.setActiveBand(i)
+                                LkResStore.persistBands()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -115,7 +121,10 @@ fun BandsScreen() {
             }
 
             TextButton(
-                onClick = { state.moveActive(1) },
+                onClick = {
+                    state.moveActive(1)
+                    LkResStore.persistBands()
+                },
                 enabled = state.activeBand < state.bandCount - 1
             ) { Text("▶") }
         }
@@ -128,16 +137,25 @@ fun BandsScreen() {
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SearchSection(onApplyColors = state::applyColors)
+            SearchSection(onApplyColors = { colors ->
+                state.applyColors(colors)
+                LkResStore.persistBands()
+            })
 
             when (state.mode) {
                 BandsMode.AUTO -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
-                        onClick = { state.removeBand() },
+                        onClick = {
+                            state.removeBand()
+                            LkResStore.persistBands()
+                        },
                         enabled = state.canRemoveBand
                     ) { Text("− dải") }
                     OutlinedButton(
-                        onClick = { state.addBand() },
+                        onClick = {
+                            state.addBand()
+                            LkResStore.persistBands()
+                        },
                         enabled = state.canAddBand
                     ) { Text("+ dải") }
                 }
@@ -146,7 +164,10 @@ fun BandsScreen() {
                     (BandsState.MIN_BAND_COUNT..BandsState.MAX_BAND_COUNT).forEachIndexed { index, count ->
                         SegmentedButton(
                             selected = state.bandCount == count,
-                            onClick = { state.setBandCount(count) },
+                            onClick = {
+                                state.setBandCount(count)
+                                LkResStore.persistBands()
+                            },
                             shape = SegmentedButtonDefaults.itemShape(index = index, count = segmentCount)
                         ) { Text("$count dải") }
                     }
@@ -166,7 +187,10 @@ fun BandsScreen() {
                                 color = c,
                                 label = chipLabel(role, c),
                                 selected = state.selected.getOrNull(state.activeBand) == c,
-                                onClick = { state.pick(c) }
+                                onClick = {
+                                    state.pick(c)
+                                    LkResStore.persistBands()
+                                }
                             )
                         }
                     }

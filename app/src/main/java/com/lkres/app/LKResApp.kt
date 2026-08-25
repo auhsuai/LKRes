@@ -8,18 +8,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.lkres.app.data.LkResStore
 import com.lkres.app.ui.bands.BandsScreen
 import com.lkres.app.ui.reference.ReferenceScreen
+import com.lkres.app.ui.settings.SettingsScreen
 import com.lkres.app.ui.smd.SmdScreen
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -101,14 +106,49 @@ private fun bookIcon(): ImageVector = ImageVector.Builder(
     close()
 }.build()
 
+private fun gearIcon(): ImageVector = ImageVector.Builder(
+    name = "SettingsGearIcon",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f,
+).path(fill = SolidColor(Color.Black), pathFillType = PathFillType.EvenOdd) {
+    moveTo(22f, 12f)
+    lineTo(18.93f, 14.87f)
+    lineTo(19.07f, 19.07f)
+    lineTo(14.87f, 18.93f)
+    lineTo(12f, 22f)
+    lineTo(9.13f, 18.93f)
+    lineTo(4.93f, 19.07f)
+    lineTo(5.07f, 14.87f)
+    lineTo(2f, 12f)
+    lineTo(5.07f, 9.13f)
+    lineTo(4.93f, 4.93f)
+    lineTo(9.13f, 5.07f)
+    lineTo(12f, 2f)
+    lineTo(14.87f, 5.07f)
+    lineTo(19.07f, 4.93f)
+    lineTo(18.93f, 9.13f)
+    close()
+    moveTo(16f, 12f)
+    curveTo(16f, 14.21f, 14.21f, 16f, 12f, 16f)
+    curveTo(9.79f, 16f, 8f, 14.21f, 8f, 12f)
+    curveTo(8f, 9.79f, 9.79f, 8f, 12f, 8f)
+    curveTo(14.21f, 8f, 16f, 9.79f, 16f, 12f)
+    close()
+}.build()
+
 private val TABS = listOf(
     Tab("bands", "Dải màu", stripeIcon()),
     Tab("smd", "SMD", chipIcon()),
     Tab("reference", "Tham khảo", bookIcon()),
+    Tab("settings", "Cài đặt", gearIcon()),
 )
 
 @Composable
 fun LKResApp() {
+    val appContext = LocalContext.current
+    remember { LkResStore.init(appContext) }
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
@@ -139,6 +179,7 @@ fun LKResApp() {
             composable("bands") { BandsScreen() }
             composable("smd") { SmdScreen() }
             composable("reference") { ReferenceScreen() }
+            composable("settings") { SettingsScreen() }
         }
     }
 }
