@@ -1,6 +1,7 @@
 package com.lkres.app.ui.reference
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.lkres.app.core.BandColor
 import com.lkres.app.core.ColorCode
 import com.lkres.app.core.Eia96
+import com.lkres.app.core.ResistorCalculator
 import com.lkres.app.core.ResistorFormat
 
 @Composable
@@ -48,6 +50,23 @@ fun ReferenceScreen() {
         item { SectionTitle("Dung sai theo màu") }
         items(ColorCode.TOLERANCES.entries.sortedBy { it.value }) { (c, t) ->
             ColorRow(c, "±${trim(t)}%")
+        }
+        item {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                Arrangement.spacedBy(8.dp),
+                Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier
+                        .size(20.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                )
+                Text(
+                    "Không dải — ±${trim(ResistorCalculator.IMPLICIT_TOLERANCE_PERCENT)}%",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
         item { SectionTitle("Hệ số nhiệt TCR (dải 6)") }
         items(ColorCode.TCR.entries.sortedBy { it.value }) { (c, p) ->

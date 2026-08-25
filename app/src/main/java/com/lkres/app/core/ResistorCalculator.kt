@@ -13,7 +13,7 @@ sealed interface CalcResult {
 
 object ResistorCalculator {
 
-    private const val IMPLICIT_TOLERANCE_PERCENT = 20.0
+    const val IMPLICIT_TOLERANCE_PERCENT = 20.0
 
     fun calculate(colors: List<BandColor>, bandCount: Int): CalcResult {
         if (bandCount !in 3..6) return CalcResult.Invalid("Số dải phải từ 3 đến 6")

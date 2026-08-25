@@ -60,7 +60,8 @@ class SmdParserTest {
 
     @Test
     fun `chữ thường tự uppercase`() {
-        assertEquals(ohmsOf("472"), ohmsOf("472".lowercase()), 1e-9)
+        assertEquals(ohmsOf("4R7"), ohmsOf("4r7"), 1e-9)
+        assertEquals(ohmsOf("01C"), ohmsOf("01c"), 1e-9)
     }
 
     @Test

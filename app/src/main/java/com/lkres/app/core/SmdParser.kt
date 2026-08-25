@@ -43,6 +43,9 @@ object SmdParser {
         val parts = code.split('R', limit = 2)
         val intPart = parts[0]
         val fracPart = parts.getOrElse(1) { "" }
+        if (intPart.isEmpty() && fracPart.isEmpty()) {
+            return SmdResult.Error(SmdErrorKind.INVALID_CHARACTERS)
+        }
         if (intPart.length > 3 || fracPart.length > 2 ||
             (intPart.isNotEmpty() && intPart.any { it !in '0'..'9' }) ||
             fracPart.any { it !in '0'..'9' }
