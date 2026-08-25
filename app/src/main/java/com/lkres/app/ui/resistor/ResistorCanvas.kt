@@ -1,16 +1,22 @@
 package com.lkres.app.ui.resistor
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import com.lkres.app.core.BandColor
+import kotlin.math.floor
 
 private val BodyLight = Color(0xFFF7ECCB)
 private val BodyBase = Color(0xFFE8D5A3)
@@ -18,17 +24,56 @@ private val BodyDark = Color(0xFFB99B62)
 private val LeadLight = Color(0xFFDDE1E6)
 private val LeadDark = Color(0xFF878E96)
 
+private const val BODY_LEFT_F = 0.24f
+private const val BODY_RIGHT_F = 0.76f
+private const val BODY_TOP_F = 0.28f
+private const val BODY_BOTTOM_F = 0.72f
+private const val BAND_AREA_START_F = 0.12f
+private const val BAND_AREA_SPAN_F = 0.76f
+
+internal fun bandRectF(bandCount: Int, index: Int, w: Float, h: Float): Rect {
+    val slot = BAND_AREA_SPAN_F / bandCount
+    val bodyW = w * (BODY_RIGHT_F - BODY_LEFT_F)
+    val left = w * BODY_LEFT_F + bodyW * (BAND_AREA_START_F + index * slot)
+    val width = bodyW * slot * 0.55f
+    return Rect(
+        offset = Offset(left, h * BODY_TOP_F),
+        size = Size(width, h * (BODY_BOTTOM_F - BODY_TOP_F))
+    )
+}
+
 @Composable
-fun ResistorCanvas(bandColors: List<BandColor?>, modifier: Modifier = Modifier) {
-    Canvas(modifier) {
+fun ResistorCanvas(
+    bandColors: List<BandColor?>,
+    modifier: Modifier = Modifier,
+    activeBandIndex: Int = -1,
+    onBandTap: ((Int) -> Unit)? = null
+) {
+    Canvas(
+        modifier.pointerInput(onBandTap, bandColors.size) {
+            detectTapGestures { offset ->
+                val handler = onBandTap ?: return@detectTapGestures
+                val w = size.width.toFloat()
+                val h = size.height.toFloat()
+                val n = bandColors.size
+                if (n == 0) return@detectTapGestures
+                if (offset.y < h * BODY_TOP_F || offset.y > h * BODY_BOTTOM_F) {
+                    return@detectTapGestures
+                }
+                val rel = (offset.x - w * BODY_LEFT_F) / (w * (BODY_RIGHT_F - BODY_LEFT_F))
+                val idx = floor((rel - BAND_AREA_START_F) / (BAND_AREA_SPAN_F / n)).toInt()
+                if (idx in 0 until n) handler(idx)
+            }
+        }
+    ) {
         val w = size.width
         val h = size.height
         val midY = h / 2f
-        val bodyTop = h * 0.28f
-        val bodyBottom = h * 0.72f
+        val bodyTop = h * BODY_TOP_F
+        val bodyBottom = h * BODY_BOTTOM_F
         val bodyH = bodyBottom - bodyTop
-        val bodyLeft = w * 0.24f
-        val bodyRight = w * 0.76f
+        val bodyLeft = w * BODY_LEFT_F
+        val bodyRight = w * BODY_RIGHT_F
         val bodyW = bodyRight - bodyLeft
 
         val leadBrush = Brush.verticalGradient(
@@ -61,9 +106,7 @@ fun ResistorCanvas(bandColors: List<BandColor?>, modifier: Modifier = Modifier) 
         val n = bandColors.size
         bandColors.forEachIndexed { index, bandColor ->
             if (bandColor != null) {
-                val slot = 0.76f / n
-                val bx = bodyLeft + bodyW * (0.12f + index * slot)
-                val bw = bodyW * slot * 0.55f
+                val rect = bandRectF(n, index, w, h)
                 val base = Color(bandColor.argb)
                 clipPath(body) {
                     drawRect(
@@ -72,11 +115,33 @@ fun ResistorCanvas(bandColors: List<BandColor?>, modifier: Modifier = Modifier) 
                             0.78f to shade(base, 0.55f), 1f to shade(base, 0.9f),
                             startY = bodyTop, endY = bodyBottom
                         ),
-                        topLeft = Offset(bx, bodyTop),
-                        size = Size(bw, bodyH)
+                        topLeft = rect.topLeft,
+                        size = rect.size
                     )
                 }
             }
+        }
+
+        if (activeBandIndex in bandColors.indices && n > 0) {
+            val rect = bandRectF(n, activeBandIndex, w, h)
+            val stroke = 3.dp.toPx()
+            val inflate = stroke / 2f + 1.dp.toPx()
+            val ringTopLeft = Offset(rect.left - inflate, rect.top - inflate)
+            val ringSize = Size(rect.width + inflate * 2f, rect.height + inflate * 2f)
+            drawRoundRect(
+                color = Color.Black.copy(alpha = 0.40f),
+                topLeft = ringTopLeft,
+                size = ringSize,
+                cornerRadius = CornerRadius(stroke),
+                style = Stroke(width = stroke * 2f)
+            )
+            drawRoundRect(
+                color = Color.White,
+                topLeft = ringTopLeft,
+                size = ringSize,
+                cornerRadius = CornerRadius(stroke),
+                style = Stroke(width = stroke)
+            )
         }
 
         clipPath(body) {
