@@ -9,8 +9,10 @@ import com.lkres.app.core.ResistorCalculator
 
 class BandsState(initialBandCount: Int = 4) {
 
-    var bandCount by mutableStateOf(initialBandCount)
-        private set
+    private var _bandCount by mutableStateOf(initialBandCount)
+
+    val bandCount: Int
+        get() = _bandCount
 
     var selected by mutableStateOf<List<BandColor?>>(List(initialBandCount) { null })
         private set
@@ -20,7 +22,7 @@ class BandsState(initialBandCount: Int = 4) {
         else ResistorCalculator.calculate(selected.filterNotNull(), bandCount)
 
     fun setBandCount(count: Int) {
-        bandCount = count
+        _bandCount = count
         selected = List(count) { i -> selected.getOrNull(i) }
     }
 
