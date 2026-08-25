@@ -44,12 +44,16 @@ object LkResStore {
 
     val bands = BandsState()
 
-    var parallelResults by mutableStateOf(true)
-        private set
-    var historyEnabled by mutableStateOf(true)
-        private set
-    var recentSearches by mutableStateOf<List<String>>(emptyList())
-        private set
+    private var _parallelResults by mutableStateOf(true)
+    private var _historyEnabled by mutableStateOf(true)
+    private var _recentSearches by mutableStateOf<List<String>>(emptyList())
+
+    val parallelResults: Boolean
+        get() = _parallelResults
+    val historyEnabled: Boolean
+        get() = _historyEnabled
+    val recentSearches: List<String>
+        get() = _recentSearches
 
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -92,9 +96,9 @@ object LkResStore {
             bands.applyColors(colors)
             bands.setActiveBand(prefs[KEY_ACTIVE_BAND] ?: 0)
         }
-        parallelResults = prefs[KEY_PARALLEL_RESULTS] ?: true
-        historyEnabled = prefs[KEY_HISTORY_ENABLED] ?: true
-        recentSearches = decodeRecents(prefs[KEY_RECENT_SEARCHES])
+        _parallelResults = prefs[KEY_PARALLEL_RESULTS] ?: true
+        _historyEnabled = prefs[KEY_HISTORY_ENABLED] ?: true
+        _recentSearches = decodeRecents(prefs[KEY_RECENT_SEARCHES])
     }
 
     fun persistBands() {
@@ -119,18 +123,18 @@ object LkResStore {
     }
 
     fun setParallelResults(value: Boolean) {
-        parallelResults = value
+        _parallelResults = value
         saveFlag(KEY_PARALLEL_RESULTS, value)
     }
 
     fun setHistoryEnabled(value: Boolean) {
-        historyEnabled = value
+        _historyEnabled = value
         saveFlag(KEY_HISTORY_ENABLED, value)
     }
 
     fun clearRecentSearches() {
-        if (recentSearches.isEmpty()) return
-        recentSearches = emptyList()
+        if (_recentSearches.isEmpty()) return
+        _recentSearches = emptyList()
         saveRecents()
     }
 
@@ -138,10 +142,10 @@ object LkResStore {
         if (!historyEnabled) return
         val query = rawQuery.trim()
         if (query.isEmpty()) return
-        val next = (listOf(query) + recentSearches.filterNot { it == query })
+        val next = (listOf(query) + _recentSearches.filterNot { it == query })
             .take(RECENT_SEARCH_LIMIT)
-        if (next == recentSearches) return
-        recentSearches = next
+        if (next == _recentSearches) return
+        _recentSearches = next
         saveRecents()
     }
 
@@ -182,7 +186,7 @@ object LkResStore {
 
     private fun saveRecents() {
         val ctx = appContext ?: return
-        val json = encodeRecents(recentSearches)
+        val json = encodeRecents(_recentSearches)
         ioScope.launch {
             try {
                 ctx.lkresDataStore.edit { it[KEY_RECENT_SEARCHES] = json }
