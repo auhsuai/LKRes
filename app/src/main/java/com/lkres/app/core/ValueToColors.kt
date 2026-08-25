@@ -56,10 +56,8 @@ object ValueToColors {
         return ds.map { digitColor(it) } + multColor
     }
 
-    // Gợi ý giá trị E24 KẾ TIẾP (nhỏ nhất trong E24 mà >= ohms).
-    // Baseline test yêu cầu nearestE24(1234) == 1300: cả khoảng cách tuyến tính lẫn log-space
-    // đều chọn 1200 (12 ∈ E24), nên "gần nhất thuần túy" không thoả bài toán nghiệp vụ;
-    // quy ước chọn trở chuẩn cao hơn gần nhất mới khớp baseline.
+    // Gợi ý giá trị E24 GẦN NHẤT THẬT theo khoảng cách tuyệt đối nhỏ nhất.
+    // VD: 1234 → 1200 (12 ∈ E24, |1234−1200|=34 < |1300−1234|=66).
     private fun nearestE24(ohms: Double): Double {
         val e = floor(log10(ohms)).roundToInt()
         var best = Double.MAX_VALUE
@@ -67,7 +65,8 @@ object ValueToColors {
         for (de in e - 1..e + 1) {
             E24.forEach { base ->
                 val v = base * 10.0.pow((de - 1).toDouble())
-                if (v >= ohms && v < best) { best = v; bestV = v }
+                val d = Math.abs(v - ohms)
+                if (d < best) { best = d; bestV = v }
             }
         }
         return bestV
