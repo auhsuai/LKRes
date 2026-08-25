@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +34,16 @@ import com.lkres.app.core.ResistorFormat
 
 @Composable
 fun ReferenceScreen() {
+    val eia96Rows = remember {
+        Eia96.VALUES.keys.sorted().chunked(3).map { chunk ->
+            chunk.map { code ->
+                code to ResistorFormat.format(Eia96.VALUES.getValue(code).toDouble())
+            }
+        }
+    }
+    val eia96LegendRows = remember {
+        Eia96.MULTIPLIERS.entries.sortedBy { it.key }.chunked(4)
+    }
     LazyColumn(
         Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -133,7 +144,7 @@ fun ReferenceScreen() {
                     "Giá trị gốc (2 chữ số) × hệ số chữ cái:",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                Eia96.MULTIPLIERS.entries.sortedBy { it.key }.chunked(4).forEach { chunk ->
+                eia96LegendRows.forEach { chunk ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         chunk.forEach { (letter, mult) ->
                             Text("$letter: ×${trim(mult)}", style = MaterialTheme.typography.bodySmall)
@@ -148,22 +159,38 @@ fun ReferenceScreen() {
                 Arrangement.spacedBy(4.dp),
                 Alignment.CenterVertically
             ) {
-                CellText("Mã", Modifier.weight(0.6f), header = true)
-                CellText("Giá trị", Modifier.weight(1f), header = true, align = TextAlign.End)
+                repeat(3) {
+                    Row(
+                        Modifier.weight(1f),
+                        Arrangement.spacedBy(4.dp),
+                        Alignment.CenterVertically
+                    ) {
+                        CellText("Mã", Modifier.weight(0.6f), header = true)
+                        CellText("Giá trị", Modifier.weight(1f), header = true, align = TextAlign.End)
+                    }
+                }
             }
         }
-        items(Eia96.VALUES.keys.sorted()) { code ->
+        items(
+            items = eia96Rows,
+            key = { row -> row.first().first },
+            contentType = { "eia96-row" }
+        ) { row ->
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 2.dp),
                 Arrangement.spacedBy(4.dp),
                 Alignment.CenterVertically
             ) {
-                CellText(code, Modifier.weight(0.6f))
-                CellText(
-                    ResistorFormat.format(Eia96.VALUES.getValue(code).toDouble()),
-                    Modifier.weight(1f),
-                    align = TextAlign.End
-                )
+                row.forEach { (code, value) ->
+                    Row(
+                        Modifier.weight(1f),
+                        Arrangement.spacedBy(4.dp),
+                        Alignment.CenterVertically
+                    ) {
+                        CellText(code, Modifier.weight(0.6f))
+                        CellText(value, Modifier.weight(1f), align = TextAlign.End)
+                    }
+                }
             }
         }
     }
