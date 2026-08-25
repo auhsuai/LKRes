@@ -109,12 +109,12 @@ private fun bodyPath(l: Float, r: Float, t: Float, b: Float, midY: Float): Path 
     val halfH = (b - t) / 2f
     return Path().apply {
         moveTo(l, midY)
-        cubicTo(l + span * 0.10f, t + halfH * 0.12f, l + span * 0.16f, t, l + span * 0.32f, t)
-        lineTo(r - span * 0.32f, t)
-        cubicTo(r - span * 0.16f, t, r - span * 0.10f, t + halfH * 0.12f, r, midY)
-        cubicTo(r - span * 0.10f, b - halfH * 0.12f, r - span * 0.16f, b, r - span * 0.32f, b)
-        lineTo(l + span * 0.32f, b)
-        cubicTo(l + span * 0.16f, b, l + span * 0.10f, b - halfH * 0.12f, l, midY)
+        cubicTo(l + span * 0.02f, t + halfH * 0.30f, l + span * 0.14f, t, l + span * 0.22f, t)
+        lineTo(r - span * 0.22f, t)
+        cubicTo(r - span * 0.14f, t, r - span * 0.02f, t + halfH * 0.30f, r, midY)
+        cubicTo(r - span * 0.02f, b - halfH * 0.30f, r - span * 0.14f, b, r - span * 0.22f, b)
+        lineTo(l + span * 0.22f, b)
+        cubicTo(l + span * 0.14f, b, l + span * 0.02f, b - halfH * 0.30f, l, midY)
         close()
     }
 }
