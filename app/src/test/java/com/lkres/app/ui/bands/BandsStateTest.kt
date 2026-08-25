@@ -54,4 +54,23 @@ class BandsStateTest {
         s.pick(0, BandColor.BROWN)
         assertEquals(BandColor.BROWN, s.selected[0])
     }
+
+    @Test
+    fun `diag lộ lỗi runtime`() {
+        try {
+            val s = BandsState()
+            println("::error::DIAG construct OK bandCount=" + s.bandCount)
+            s.pick(0, BandColor.YELLOW)
+            println("::error::DIAG pick OK selected0=" + s.selected[0])
+            println("::error::DIAG result=" + (s.result?.toString() ?: "null"))
+        } catch (t: Throwable) {
+            println("::error::DIAG THROWN " + t.javaClass.name + ": " + t.message)
+            var c: Throwable? = t.cause
+            while (c != null) {
+                println("::error::DIAG CAUSE " + c.javaClass.name + ": " + c.message)
+                c = c.cause
+            }
+            throw t
+        }
+    }
 }
