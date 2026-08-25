@@ -22,10 +22,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -39,7 +36,7 @@ private fun chipColor(c: BandColor): Color = Color(c.argb)
 
 @Composable
 fun BandsScreen() {
-    var state by remember { mutableStateOf(BandsState()) }
+    val state = remember { BandsState() }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -93,11 +90,14 @@ fun BandsScreen() {
     }
 }
 
-private fun optionsFor(bandIndex: Int, bandCount: Int): List<BandColor> = when {
-    bandCount == 6 && bandIndex == 5 -> ColorCode.TCR.keys.sortedBy { it.ordinal }
-    bandCount >= 4 && bandIndex == bandCount - 1 -> ColorCode.TOLERANCES.keys.sortedBy { it.ordinal }
-    bandIndex < bandCount - (if (bandCount >= 4) 2 else 1) -> ColorCode.DIGITS.keys.sortedBy { it.ordinal }
-    else -> ColorCode.MULTIPLIERS.keys.sortedBy { it.ordinal }
+private fun optionsFor(bandIndex: Int, bandCount: Int): List<BandColor> {
+    val digitCount = if (bandCount <= 4) 2 else 3
+    return when {
+        bandIndex < digitCount -> ColorCode.DIGITS.keys.sortedBy { it.ordinal }
+        bandIndex == digitCount -> ColorCode.MULTIPLIERS.keys.sortedBy { it.ordinal }
+        bandIndex == digitCount + 1 -> ColorCode.TOLERANCES.keys.sortedBy { it.ordinal }
+        else -> ColorCode.TCR.keys.sortedBy { it.ordinal }
+    }
 }
 
 @Composable
