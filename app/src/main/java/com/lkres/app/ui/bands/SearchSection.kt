@@ -15,9 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -32,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.lkres.app.core.BandColor
 import com.lkres.app.core.BandRole
@@ -70,22 +66,32 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
         onApplyColors(variant.colors + tolColor + tcrPart)
     }
 
-    fun showResults(ohms: Double, queryForHistory: String? = null) {
-        tolerances = emptyMap()
-        tcrs = emptyMap()
-        when (val enc = ValueToColors.encode(ohms)) {
-            is EncodingResult.Encodable -> {
-                if (queryForHistory != null) LkResStore.addRecentSearch(queryForHistory)
-                ui = SearchUi.Results(ohms, enc.variants)
+    fun defaultVariant(variants: List<ColorVariant>): ColorVariant? =
+        variants.firstOrNull { it.bandCount == FOUR_BANDS } ?: variants.firstOrNull()
+
+    // Live search: parse + encode là hàm thuần, rẻ — chỉ chạy khi text thật sự đổi (trong event handler,
+    // không phải lúc recomposition) nên không cần memoize thêm.
+    fun evaluate(raw: String): SearchUi {
+        if (raw.isBlank()) return SearchUi.Idle
+        return when (val parsed = ValueParser.parse(raw)) {
+            is ValueParseResult.Error -> SearchUi.Failed(parsed.kind.message)
+            is ValueParseResult.Success -> when (val enc = ValueToColors.encode(parsed.ohms)) {
+                is EncodingResult.Encodable -> SearchUi.Results(parsed.ohms, enc.variants)
+                is EncodingResult.NotEncodable -> SearchUi.SuggestNearest(enc.nearestE24)
             }
-            is EncodingResult.NotEncodable -> ui = SearchUi.SuggestNearest(enc.nearestE24)
         }
     }
 
-    fun runSearch(raw: String) {
-        when (val parsed = ValueParser.parse(raw)) {
-            is ValueParseResult.Error -> ui = SearchUi.Failed(parsed.kind.message)
-            is ValueParseResult.Success -> showResults(parsed.ohms, raw)
+    // Điểm vào DUY NHẤT cho thay đổi query (gõ phím lẫn bấm chip lịch sử).
+    // Encode thành công -> tự áp tổ hợp mặc định (không ghi history); parse lỗi/rỗng -> không đụng màu đã áp.
+    fun onQueryChange(newQuery: String) {
+        query = newQuery
+        val next = evaluate(newQuery)
+        ui = next
+        if (next is SearchUi.Results) {
+            tolerances = emptyMap()
+            tcrs = emptyMap()
+            defaultVariant(next.variants)?.let { applySequence(it, DEFAULT_TOLERANCE, null) }
         }
     }
 
@@ -102,22 +108,13 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier.weight(1f),
-                label = { Text("Nhập giá trị: 4700 · 4,7k · 4k7") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { runSearch(query) })
-            )
-            Button(onClick = { runSearch(query) }) { Text("Tìm") }
-        }
+        OutlinedTextField(
+            value = query,
+            onValueChange = { onQueryChange(it) },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Nhập giá trị: 4700 · 4,7k · 4k7") },
+            singleLine = true
+        )
 
         if (LkResStore.historyEnabled && LkResStore.recentSearches.isNotEmpty()) {
             FlowRow(
@@ -127,10 +124,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
             ) {
                 LkResStore.recentSearches.forEach { item ->
                     SuggestionChip(
-                        onClick = {
-                            query = item
-                            runSearch(item)
-                        },
+                        onClick = { onQueryChange(item) },
                         label = { Text(item) }
                     )
                 }
@@ -160,10 +154,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                 val visibleVariants = if (LkResStore.parallelResults) {
                     current.variants
                 } else {
-                    listOfNotNull(
-                        current.variants.firstOrNull { it.bandCount == FOUR_BANDS }
-                            ?: current.variants.firstOrNull()
-                    )
+                    listOfNotNull(defaultVariant(current.variants))
                 }
                 FlowRow(
                     Modifier.fillMaxWidth(),
@@ -178,14 +169,17 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                             tolerance = tolerances[count] ?: DEFAULT_TOLERANCE,
                             tcr = selectedTcr,
                             onSelect = {
+                                LkResStore.addRecentSearch(query)
                                 applySequence(variant, tolerances[count] ?: DEFAULT_TOLERANCE, selectedTcr)
                             },
                             onToleranceChange = { c ->
                                 tolerances = tolerances + (count to c)
+                                LkResStore.addRecentSearch(query)
                                 applySequence(variant, c, selectedTcr)
                             },
                             onTcrChange = { c ->
                                 tcrs = tcrs + (count to c)
+                                LkResStore.addRecentSearch(query)
                                 applySequence(variant, tolerances[count] ?: DEFAULT_TOLERANCE, c)
                             }
                         )

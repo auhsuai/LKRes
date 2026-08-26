@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.lkres.app.core.BandColor
@@ -30,6 +31,11 @@ private const val BODY_TOP_F = 0.28f
 private const val BODY_BOTTOM_F = 0.72f
 private const val BAND_AREA_START_F = 0.12f
 private const val BAND_AREA_SPAN_F = 0.76f
+
+private const val ACTIVE_BORDER_WIDTH_DP = 2
+private const val ACTIVE_BORDER_CORNER_DP = 3
+private const val ACTIVE_BORDER_LIGHTEN_FRACTION = 0.45f
+private const val EMPTY_BAND_BORDER_ALPHA = 0.7f
 
 internal fun bandRectF(bandCount: Int, index: Int, w: Float, h: Float): Rect {
     val slot = BAND_AREA_SPAN_F / bandCount
@@ -124,24 +130,18 @@ fun ResistorCanvas(
 
         if (activeBandIndex in bandColors.indices && n > 0) {
             val rect = bandRectF(n, activeBandIndex, w, h)
-            val stroke = 3.dp.toPx()
-            val inflate = stroke / 2f + 1.dp.toPx()
-            val ringTopLeft = Offset(rect.left - inflate, rect.top - inflate)
-            val ringSize = Size(rect.width + inflate * 2f, rect.height + inflate * 2f)
-            drawRoundRect(
-                color = Color.Black.copy(alpha = 0.40f),
-                topLeft = ringTopLeft,
-                size = ringSize,
-                cornerRadius = CornerRadius(stroke),
-                style = Stroke(width = stroke * 2f)
-            )
-            drawRoundRect(
-                color = Color.White,
-                topLeft = ringTopLeft,
-                size = ringSize,
-                cornerRadius = CornerRadius(stroke),
-                style = Stroke(width = stroke)
-            )
+            val base = bandColors[activeBandIndex]?.let { Color(it.argb) }
+            val borderColor = base?.let { lerp(it, Color.White, ACTIVE_BORDER_LIGHTEN_FRACTION) }
+                ?: Color.White.copy(alpha = EMPTY_BAND_BORDER_ALPHA)
+            clipPath(body) {
+                drawRoundRect(
+                    color = borderColor,
+                    topLeft = rect.topLeft,
+                    size = rect.size,
+                    cornerRadius = CornerRadius(ACTIVE_BORDER_CORNER_DP.dp.toPx()),
+                    style = Stroke(width = ACTIVE_BORDER_WIDTH_DP.dp.toPx())
+                )
+            }
         }
 
         clipPath(body) {
