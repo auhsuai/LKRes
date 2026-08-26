@@ -156,7 +156,7 @@ fun ReferenceScreen() {
         item {
             Row(
                 Modifier.fillMaxWidth(),
-                Arrangement.spacedBy(4.dp),
+                Arrangement.spacedBy(10.dp),
                 Alignment.CenterVertically
             ) {
                 repeat(3) {
@@ -178,7 +178,7 @@ fun ReferenceScreen() {
         ) { row ->
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                Arrangement.spacedBy(4.dp),
+                Arrangement.spacedBy(10.dp),
                 Alignment.CenterVertically
             ) {
                 row.forEach { (code, value) ->
