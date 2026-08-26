@@ -51,6 +51,7 @@ private val DOT_SIZE = 26.dp
 fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
     var query by remember { mutableStateOf("") }
     var ui by remember { mutableStateOf<SearchUi>(SearchUi.Idle) }
+    var dismissed by remember { mutableStateOf(false) }
 
     // Bấm thẻ: áp colors + dung sai GOLD mặc định (giá trị hiện ngay, user chỉnh sau bằng
     // chạm dải trên hình) + TCR null nếu 6 dải.
@@ -77,11 +78,15 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
 
     // Điểm vào DUY NHẤT cho thay đổi query (gõ phím lẫn bấm chip lịch sử).
     // Encode thành công -> tự áp tổ hợp mặc định (không ghi history); parse lỗi/rỗng -> không đụng màu đã áp.
-    fun onQueryChange(newQuery: String) {
+    // Đang xoá text (độ dài giảm, không phải chip) -> chỉ cập nhật kết quả tìm kiếm,
+    // KHÔNG áp lại hình trở (xoá "4700" giữ nguyên 4.7k thay vì nhảy 470->47->4).
+    fun onQueryChange(newQuery: String, forceApply: Boolean = false) {
+        val isDeleting = !forceApply && newQuery.length < query.length
+        dismissed = false
         query = newQuery
         val next = evaluate(newQuery)
         ui = next
-        if (next is SearchUi.Results) {
+        if (!isDeleting && next is SearchUi.Results) {
             defaultVariant(next.variants)?.let { applySequence(it) }
         }
     }
@@ -90,6 +95,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
         when (val enc = ValueToColors.encode(nearestOhms)) {
             is EncodingResult.Encodable -> {
                 LkResStore.addRecentSearch(ResistorFormat.format(nearestOhms))
+                dismissed = false
                 ui = SearchUi.Results(nearestOhms, enc.variants)
             }
             is EncodingResult.NotEncodable -> Unit
@@ -113,7 +119,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
             ) {
                 LkResStore.recentSearches.forEach { item ->
                     SuggestionChip(
-                        onClick = { onQueryChange(item) },
+                        onClick = { onQueryChange(item, forceApply = true) },
                         label = { Text(item) }
                     )
                 }
@@ -145,19 +151,22 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                 } else {
                     listOfNotNull(defaultVariant(current.variants))
                 }
-                FlowRow(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    visibleVariants.forEach { variant ->
-                        VariantCard(
-                            variant = variant,
-                            onSelect = {
-                                LkResStore.addRecentSearch(query)
-                                applySequence(variant)
-                            }
-                        )
+                if (!dismissed) {
+                    FlowRow(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        visibleVariants.forEach { variant ->
+                            VariantCard(
+                                variant = variant,
+                                onSelect = {
+                                    LkResStore.addRecentSearch(query)
+                                    applySequence(variant)
+                                    dismissed = true
+                                }
+                            )
+                        }
                     }
                 }
             }
