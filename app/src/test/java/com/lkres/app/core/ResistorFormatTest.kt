@@ -7,7 +7,8 @@ class ResistorFormatTest {
 
     @Test
     fun `4700 ohm ±5% = 4_7 kOhm ±5%`() {
-        assertEquals("4.7 kΩ ±5%", ResistorFormat.format(4700.0, 5.0))
+        assertEquals("4,7 kΩ ±5%", ResistorFormat.format(4700.0, 5.0))
+        assertEquals("4,7 kΩ ±0,5%", ResistorFormat.format(4700.0, 0.5))
     }
 
     @Test
@@ -27,7 +28,7 @@ class ResistorFormatTest {
 
     @Test
     fun `dưới 1 ohm giữ số thập phân`() {
-        assertEquals("0.47 Ω", ResistorFormat.format(0.47))
+        assertEquals("0,47 Ω", ResistorFormat.format(0.47))
     }
 
     @Test
@@ -43,6 +44,6 @@ class ResistorFormatTest {
 
     @Test
     fun `số lẻ làm tròn 2 chữ số`() {
-        assertEquals("33.33 Ω", ResistorFormat.format(100.0 / 3.0))
+        assertEquals("33,33 Ω", ResistorFormat.format(100.0 / 3.0))
     }
 }
