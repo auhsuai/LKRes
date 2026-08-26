@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.lkres.app.data.LkResStore
 import com.lkres.app.ui.bands.BandsMode
 
-private const val APP_VERSION_NOTE = "LKRes · Phiên bản 1.0"
+private const val APP_VERSION_NOTE = "LKRes · Phiên bản 1.1"
 
 @Composable
 fun SettingsScreen() {
@@ -59,7 +59,7 @@ fun SettingsScreen() {
         HorizontalDivider()
 
         ToggleRow(
-            title = "Hiển thị song song nhiều tổ hợp màu khi tìm kiếm",
+            title = "Hiện nhiều tổ hợp màu khi tìm kiếm",
             checked = LkResStore.parallelResults,
             onChange = LkResStore::setParallelResults
         )
@@ -74,7 +74,7 @@ fun SettingsScreen() {
             Column(Modifier.weight(1f)) {
                 Text("Lịch sử tra cứu", style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Ghi và hiển thị các giá trị đã tìm",
+                    "Lưu và hiện các giá trị đã tìm gần đây",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -92,7 +92,7 @@ fun SettingsScreen() {
         HorizontalDivider()
 
         ToggleRow(
-            title = "Giữ màn hình sáng khi dùng app",
+            title = "Màn hình luôn bật khi mở ứng dụng",
             checked = LkResStore.keepScreenOn,
             onChange = LkResStore::setKeepScreenOn
         )

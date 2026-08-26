@@ -7,7 +7,7 @@ data class Resistance(
 )
 
 sealed interface CalcResult {
-    data class Success(val resistance: Resistance, val rareWarning: String?) : CalcResult
+    data class Success(val resistance: Resistance) : CalcResult
     data class Invalid(val reason: String) : CalcResult
 }
 
@@ -26,11 +26,11 @@ object ResistorCalculator {
 
         for (i in 0 until digitCount) {
             if (colors[i] !in ColorCode.DIGITS) {
-                return CalcResult.Invalid("Dải ${i + 1} không phải màu chữ số hợp lệ")
+                return CalcResult.Invalid("Màu của dải ${i + 1} không hợp lệ")
             }
         }
         if (colors[multIndex] !in ColorCode.MULTIPLIERS) {
-            return CalcResult.Invalid("Dải nhân không hợp lệ")
+            return CalcResult.Invalid("Dải hệ số nhân không hợp lệ")
         }
 
         val significand = colors.take(digitCount)
@@ -51,11 +51,6 @@ object ResistorCalculator {
             ColorCode.TCR[t] ?: return CalcResult.Invalid("Dải hệ số nhiệt không hợp lệ")
         } else null
 
-        val warning = when (colors.first()) {
-            BandColor.BLACK -> "Chữ số đầu là 0 (đen), hiếm gặp trong thực tế"
-            BandColor.WHITE -> "Chữ số đầu là 9 (trắng), hiếm gặp trong thực tế"
-            else -> null
-        }
-        return CalcResult.Success(Resistance(ohms, tolerance, tcr), warning)
+        return CalcResult.Success(Resistance(ohms, tolerance, tcr))
     }
 }

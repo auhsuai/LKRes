@@ -198,9 +198,6 @@ fun BandsScreen() {
             }
 
             when (val result = state.result) {
-                is CalcResult.Success -> result.rareWarning?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                }
                 is CalcResult.Invalid -> Text(
                     result.reason,
                     color = MaterialTheme.colorScheme.error,

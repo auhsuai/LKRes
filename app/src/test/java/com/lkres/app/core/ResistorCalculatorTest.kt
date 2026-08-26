@@ -55,14 +55,6 @@ class ResistorCalculatorTest {
     }
 
     @Test
-    fun `cảnh báo khi digit đầu là đen`() {
-        val r = calc(BandColor.BLACK, BandColor.BLACK, BandColor.BROWN, BandColor.GOLD)
-        assertTrue(r is CalcResult.Success)
-        r as CalcResult.Success
-        assertTrue(r.rareWarning != null)
-    }
-
-    @Test
     fun `dải dung sai chọn trắng là Invalid`() {
         val r = calc(BandColor.YELLOW, BandColor.VIOLET, BandColor.RED, BandColor.WHITE)
         assertTrue(r is CalcResult.Invalid)

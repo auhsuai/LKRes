@@ -135,7 +135,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
             )
             is SearchUi.SuggestNearest -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    "Giá trị không nằm trên dải chuẩn. Giá trị chuẩn gần nhất: ${ResistorFormat.format(current.nearestOhms)}"
+                    "Giá trị không thuộc dải chuẩn E24. Gợi ý gần nhất: ${ResistorFormat.format(current.nearestOhms)}"
                 )
                 OutlinedButton(onClick = { acceptSuggestion(current.nearestOhms) }) {
                     Text("Dùng giá trị này")

@@ -57,10 +57,10 @@ fun ReferenceScreen() {
             ) {
                 Spacer(Modifier.size(40.dp))
                 CellText("Tên", Modifier.weight(1.2f), header = true)
-                CellText("Chữ số", Modifier.weight(0.8f), header = true)
+                CellText("Giá trị", Modifier.weight(0.8f), header = true)
                 CellText("Nhân", Modifier.weight(1.45f), header = true)
                 CellText("Dung sai", Modifier.weight(1.1f), header = true)
-                CellText("TCR", Modifier.weight(1.1f), header = true)
+                CellText("Hệ số nhiệt", Modifier.weight(1.1f), header = true)
             }
         }
         items(BandColor.entries.sortedBy { it.ordinal }) { c ->
