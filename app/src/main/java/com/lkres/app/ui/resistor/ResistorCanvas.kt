@@ -34,10 +34,12 @@ private const val BAND_AREA_SPAN_F = 0.76f
 
 private const val ACTIVE_BORDER_WIDTH_DP = 3.0
 private const val ACTIVE_BORDER_CORNER_DP = 3
-private const val DARK_BAND_LUMINANCE_THRESHOLD = 0.5f
+private const val PURE_WHITE_LUMINANCE = 1.0f
+private const val WCAG_CONTRAST_OFFSET = 0.05f
 private const val EMPTY_BAND_BORDER_ALPHA = 0.7f
 
 private val LightBandBorderColor = Color(0xFF141414)
+private val LightBandBorderLum = LightBandBorderColor.luminance()
 
 internal fun bandRectF(bandCount: Int, index: Int, w: Float, h: Float): Rect {
     val slot = BAND_AREA_SPAN_F / bandCount
@@ -133,13 +135,15 @@ fun ResistorCanvas(
         if (activeBandIndex in bandColors.indices && n > 0) {
             val rect = bandRectF(n, activeBandIndex, w, h)
             val base = bandColors[activeBandIndex]?.let { Color(it.argb) }
-            // Viền tương phản cực đại: dải tối viền trắng tinh, dải sáng viền gần đen.
+            // Viền tương phản cực đại: chọn trắng/near-black theo tỉ lệ tương phản WCAG,
+            // không theo ngưỡng luminance cứng (dải trung gian như vàng kim tự về phía đen).
             val borderColor = base?.let {
-                if (it.luminance() < DARK_BAND_LUMINANCE_THRESHOLD) {
-                    Color.White
-                } else {
-                    LightBandBorderColor
-                }
+                val lum = it.luminance()
+                val contrastWhite =
+                    (PURE_WHITE_LUMINANCE + WCAG_CONTRAST_OFFSET) / (lum + WCAG_CONTRAST_OFFSET)
+                val contrastBlack =
+                    (lum + WCAG_CONTRAST_OFFSET) / (LightBandBorderLum + WCAG_CONTRAST_OFFSET)
+                if (contrastWhite >= contrastBlack) Color.White else LightBandBorderColor
             } ?: Color.White.copy(alpha = EMPTY_BAND_BORDER_ALPHA)
             clipPath(body) {
                 drawRoundRect(
