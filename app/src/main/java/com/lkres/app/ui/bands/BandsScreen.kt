@@ -203,7 +203,7 @@ fun BandsScreen() {
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
                 )
-                null -> Unit
+                is CalcResult.Success, null -> Unit
             }
         }
     }
