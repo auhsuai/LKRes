@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -63,31 +62,6 @@ fun SettingsScreen() {
             checked = LkResStore.parallelResults,
             onChange = LkResStore::setParallelResults
         )
-
-        HorizontalDivider()
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Lịch sử tra cứu", style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    "Lưu và hiện các giá trị đã tìm gần đây",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = LkResStore.historyEnabled,
-                onCheckedChange = LkResStore::setHistoryEnabled
-            )
-        }
-        Button(
-            onClick = LkResStore::clearRecentSearches,
-            enabled = LkResStore.recentSearches.isNotEmpty()
-        ) { Text("Xoá lịch sử") }
 
         HorizontalDivider()
 

@@ -22,14 +22,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.json.JSONArray
 import java.io.IOException
 
 private val Context.lkresDataStore: DataStore<Preferences> by preferencesDataStore(name = "lkres_prefs")
 
 object LkResStore {
-
-    const val RECENT_SEARCH_LIMIT = 5
 
     private const val TAG = "LkResStore"
     private const val EMPTY_SLOT = "-"
@@ -39,23 +36,15 @@ object LkResStore {
     private val KEY_SELECTED = stringPreferencesKey("selected")
     private val KEY_ACTIVE_BAND = intPreferencesKey("active_band")
     private val KEY_PARALLEL_RESULTS = booleanPreferencesKey("parallel_results")
-    private val KEY_HISTORY_ENABLED = booleanPreferencesKey("history_enabled")
-    private val KEY_RECENT_SEARCHES = stringPreferencesKey("recent_searches")
     private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
 
     val bands = BandsState()
 
     private var _parallelResults by mutableStateOf(true)
-    private var _historyEnabled by mutableStateOf(true)
-    private var _recentSearches by mutableStateOf<List<String>>(emptyList())
     private var _keepScreenOn by mutableStateOf(false)
 
     val parallelResults: Boolean
         get() = _parallelResults
-    val historyEnabled: Boolean
-        get() = _historyEnabled
-    val recentSearches: List<String>
-        get() = _recentSearches
     val keepScreenOn: Boolean
         get() = _keepScreenOn
 
@@ -101,8 +90,6 @@ object LkResStore {
             bands.setActiveBand(prefs[KEY_ACTIVE_BAND] ?: 0)
         }
         _parallelResults = prefs[KEY_PARALLEL_RESULTS] ?: true
-        _historyEnabled = prefs[KEY_HISTORY_ENABLED] ?: true
-        _recentSearches = decodeRecents(prefs[KEY_RECENT_SEARCHES])
         _keepScreenOn = prefs[KEY_KEEP_SCREEN_ON] ?: false
     }
 
@@ -132,31 +119,9 @@ object LkResStore {
         saveFlag(KEY_PARALLEL_RESULTS, value)
     }
 
-    fun setHistoryEnabled(value: Boolean) {
-        _historyEnabled = value
-        saveFlag(KEY_HISTORY_ENABLED, value)
-    }
-
     fun setKeepScreenOn(value: Boolean) {
         _keepScreenOn = value
         saveFlag(KEY_KEEP_SCREEN_ON, value)
-    }
-
-    fun clearRecentSearches() {
-        if (_recentSearches.isEmpty()) return
-        _recentSearches = emptyList()
-        saveRecents()
-    }
-
-    fun addRecentSearch(rawQuery: String) {
-        if (!historyEnabled) return
-        val query = rawQuery.trim()
-        if (query.isEmpty()) return
-        val next = (listOf(query) + _recentSearches.filterNot { it == query })
-            .take(RECENT_SEARCH_LIMIT)
-        if (next == _recentSearches) return
-        _recentSearches = next
-        saveRecents()
     }
 
     internal fun encodeSelected(colors: List<BandColor?>): String =
@@ -171,18 +136,6 @@ object LkResStore {
             .takeIf { it.size in BandsState.MIN_BAND_COUNT..BandsState.MAX_BAND_COUNT }
     }
 
-    internal fun encodeRecents(list: List<String>): String = JSONArray(list).toString()
-
-    internal fun decodeRecents(json: String?): List<String> = try {
-        val arr = JSONArray(json ?: "[]")
-        (0 until arr.length())
-            .mapNotNull { i -> arr.optString(i).takeIf { it.isNotBlank() } }
-            .take(RECENT_SEARCH_LIMIT)
-    } catch (e: Exception) {
-        Log.w(TAG, "decodeRecents: JSON hỏng, bỏ qua lịch sử", e)
-        emptyList()
-    }
-
     private fun saveFlag(key: Preferences.Key<Boolean>, value: Boolean) {
         val ctx = appContext ?: return
         ioScope.launch {
@@ -190,18 +143,6 @@ object LkResStore {
                 ctx.lkresDataStore.edit { it[key] = value }
             } catch (e: Exception) {
                 Log.w(TAG, "saveFlag ${key.name} thất bại", e)
-            }
-        }
-    }
-
-    private fun saveRecents() {
-        val ctx = appContext ?: return
-        val json = encodeRecents(_recentSearches)
-        ioScope.launch {
-            try {
-                ctx.lkresDataStore.edit { it[KEY_RECENT_SEARCHES] = json }
-            } catch (e: Exception) {
-                Log.w(TAG, "saveRecents thất bại", e)
             }
         }
     }

@@ -19,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -50,11 +49,16 @@ fun BandsScreen() {
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
 
+        SearchSection(onApplyColors = { colors ->
+            state.applyColors(colors)
+            LkResStore.persistBands()
+        })
+
         ResistorCanvas(
             bandColors = state.selected,
             activeBandIndex = state.activeBand,
             onBandTap = state::setActiveBand,
-            modifier = Modifier.fillMaxWidth().height(140.dp)
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(140.dp)
         )
 
         (state.result as? CalcResult.Success)?.let { success ->
@@ -69,66 +73,6 @@ fun BandsScreen() {
             )
         }
 
-        Row(
-            Modifier.fillMaxWidth().padding(top = 4.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(
-                onClick = {
-                    state.moveActive(-1)
-                    LkResStore.persistBands()
-                },
-                enabled = state.activeBand > 0
-            ) { Text("◀") }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                repeat(state.bandCount) { i ->
-                    val isActive = i == state.activeBand
-                    Box(
-                        Modifier
-                            .size(36.dp)
-                            .background(
-                                if (isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                                RoundedCornerShape(10.dp)
-                            )
-                            .border(
-                                width = if (isActive) 2.dp else 1.dp,
-                                color = if (isActive) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outline
-                                },
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .clickable {
-                                state.setActiveBand(i)
-                                LkResStore.persistBands()
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "${i + 1}",
-                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isActive) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
-                    }
-                }
-            }
-
-            TextButton(
-                onClick = {
-                    state.moveActive(1)
-                    LkResStore.persistBands()
-                },
-                enabled = state.activeBand < state.bandCount - 1
-            ) { Text("▶") }
-        }
-
         Column(
             Modifier
                 .fillMaxWidth()
@@ -137,29 +81,8 @@ fun BandsScreen() {
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SearchSection(onApplyColors = { colors ->
-                state.applyColors(colors)
-                LkResStore.persistBands()
-            })
-
-            when (state.mode) {
-                BandsMode.AUTO -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = {
-                            state.removeBand()
-                            LkResStore.persistBands()
-                        },
-                        enabled = state.canRemoveBand
-                    ) { Text("− dải") }
-                    OutlinedButton(
-                        onClick = {
-                            state.addBand()
-                            LkResStore.persistBands()
-                        },
-                        enabled = state.canAddBand
-                    ) { Text("+ dải") }
-                }
-                BandsMode.MANUAL -> SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            if (state.mode == BandsMode.MANUAL) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     val segmentCount = BandsState.MAX_BAND_COUNT - BandsState.MIN_BAND_COUNT + 1
                     (BandsState.MIN_BAND_COUNT..BandsState.MAX_BAND_COUNT).forEachIndexed { index, count ->
                         SegmentedButton(
@@ -206,6 +129,140 @@ fun BandsScreen() {
                 is CalcResult.Success, null -> Unit
             }
         }
+
+        BandBar(state)
+    }
+}
+
+// Thanh chuyển dải cố định ĐÁY màn hình:
+// AUTO: [−] ◀ (1)(2)(3)(4) ▶ [+] ; MANUAL: ◀ (1)(2)(3)(4) ▶ (segmented ở vùng cuộn).
+@Composable
+private fun BandBar(state: BandsState) {
+    when (state.mode) {
+        BandsMode.AUTO -> Row(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BandAdjustButton(
+                label = "−",
+                enabled = state.canRemoveBand,
+                onClick = {
+                    state.removeBand()
+                    LkResStore.persistBands()
+                }
+            )
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                ActiveBandNav(state)
+            }
+            BandAdjustButton(
+                label = "+",
+                enabled = state.canAddBand,
+                onClick = {
+                    state.addBand()
+                    LkResStore.persistBands()
+                }
+            )
+        }
+        BandsMode.MANUAL -> Box(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            ActiveBandNav(state)
+        }
+    }
+}
+
+@Composable
+private fun ActiveBandNav(state: BandsState) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TextButton(
+            onClick = {
+                state.moveActive(-1)
+                LkResStore.persistBands()
+            },
+            enabled = state.activeBand > 0
+        ) { Text("◀") }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(state.bandCount) { i ->
+                val isActive = i == state.activeBand
+                Box(
+                    Modifier
+                        .size(36.dp)
+                        .background(
+                            if (isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                            RoundedCornerShape(10.dp)
+                        )
+                        .border(
+                            width = if (isActive) 2.dp else 1.dp,
+                            color = if (isActive) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outline
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable {
+                            state.setActiveBand(i)
+                            LkResStore.persistBands()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "${i + 1}",
+                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isActive) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                }
+            }
+        }
+
+        TextButton(
+            onClick = {
+                state.moveActive(1)
+                LkResStore.persistBands()
+            },
+            enabled = state.activeBand < state.bandCount - 1
+        ) { Text("▶") }
+    }
+}
+
+@Composable
+private fun BandAdjustButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (enabled) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .border(
+                width = 1.dp,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.38f)
+                },
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            fontWeight = FontWeight.Bold,
+            color = if (enabled) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            }
+        )
     }
 }
 

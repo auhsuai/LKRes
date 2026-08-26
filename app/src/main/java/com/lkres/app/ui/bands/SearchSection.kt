@@ -16,7 +16,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -76,9 +75,9 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
         }
     }
 
-    // Điểm vào DUY NHẤT cho thay đổi query (gõ phím lẫn bấm chip lịch sử).
-    // Encode thành công -> tự áp tổ hợp mặc định (không ghi history); parse lỗi/rỗng -> không đụng màu đã áp.
-    // Đang xoá text (độ dài giảm, không phải chip) -> chỉ cập nhật kết quả tìm kiếm,
+    // Điểm vào DUY NHẤT cho thay đổi query (gõ phím).
+    // Encode thành công -> tự áp tổ hợp mặc định; parse lỗi/rỗng -> không đụng màu đã áp.
+    // Đang xoá text (độ dài giảm) -> chỉ cập nhật kết quả tìm kiếm,
     // KHÔNG áp lại hình trở (xoá "4700" giữ nguyên 4.7k thay vì nhảy 470->47->4).
     fun onQueryChange(newQuery: String, forceApply: Boolean = false) {
         val isDeleting = !forceApply && newQuery.length < query.length
@@ -94,7 +93,6 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
     fun acceptSuggestion(nearestOhms: Double) {
         when (val enc = ValueToColors.encode(nearestOhms)) {
             is EncodingResult.Encodable -> {
-                LkResStore.addRecentSearch(formatHistoryValue(nearestOhms))
                 dismissed = false
                 ui = SearchUi.Results(nearestOhms, enc.variants)
             }
@@ -110,21 +108,6 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
             label = { Text("Nhập giá trị cần tìm (4700, 4,7k, 4k7)") },
             singleLine = true
         )
-
-        if (LkResStore.historyEnabled && LkResStore.recentSearches.isNotEmpty()) {
-            FlowRow(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                LkResStore.recentSearches.forEach { item ->
-                    SuggestionChip(
-                        onClick = { onQueryChange(item, forceApply = true) },
-                        label = { Text(item) }
-                    )
-                }
-            }
-        }
 
         when (val current = ui) {
             SearchUi.Idle -> Unit
@@ -142,10 +125,6 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                 }
             }
             is SearchUi.Results -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    ResistorFormat.format(current.ohms),
-                    style = MaterialTheme.typography.titleLarge
-                )
                 val visibleVariants = if (LkResStore.parallelResults) {
                     current.variants
                 } else {
@@ -161,7 +140,6 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                             VariantCard(
                                 variant = variant,
                                 onSelect = {
-                                    LkResStore.addRecentSearch(query)
                                     applySequence(variant)
                                     dismissed = true
                                 }
@@ -171,17 +149,6 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                 }
             }
         }
-    }
-}
-
-// Lịch sử lưu số thuần dấu phẩy, không đơn vị Ω — đồng bộ với search thường;
-// ValueParser hỗ trợ dấu phẩy nên bấm chip lịch sử parse được ngay.
-private fun formatHistoryValue(ohms: Double): String {
-    val rounded = Math.round(ohms * 100.0) / 100.0
-    return if (rounded == Math.floor(rounded)) {
-        rounded.toLong().toString()
-    } else {
-        rounded.toString().replace('.', ',')
     }
 }
 
