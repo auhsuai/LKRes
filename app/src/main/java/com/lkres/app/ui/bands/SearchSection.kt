@@ -94,7 +94,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
     fun acceptSuggestion(nearestOhms: Double) {
         when (val enc = ValueToColors.encode(nearestOhms)) {
             is EncodingResult.Encodable -> {
-                LkResStore.addRecentSearch(ResistorFormat.format(nearestOhms))
+                LkResStore.addRecentSearch(formatHistoryValue(nearestOhms))
                 dismissed = false
                 ui = SearchUi.Results(nearestOhms, enc.variants)
             }
@@ -171,6 +171,17 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                 }
             }
         }
+    }
+}
+
+// Lịch sử lưu số thuần dấu phẩy, không đơn vị Ω — đồng bộ với search thường;
+// ValueParser hỗ trợ dấu phẩy nên bấm chip lịch sử parse được ngay.
+private fun formatHistoryValue(ohms: Double): String {
+    val rounded = Math.round(ohms * 100.0) / 100.0
+    return if (rounded == Math.floor(rounded)) {
+        rounded.toLong().toString()
+    } else {
+        rounded.toString().replace('.', ',')
     }
 }
 

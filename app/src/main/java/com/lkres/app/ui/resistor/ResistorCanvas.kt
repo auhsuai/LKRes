@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.lkres.app.core.BandColor
@@ -32,14 +32,13 @@ private const val BODY_BOTTOM_F = 0.72f
 private const val BAND_AREA_START_F = 0.12f
 private const val BAND_AREA_SPAN_F = 0.76f
 
-private const val ACTIVE_BORDER_WIDTH_DP = 3.0
+private const val ACTIVE_BORDER_OUTER_DP = 4.0
+private const val ACTIVE_BORDER_INNER_DP = 2.5
 private const val ACTIVE_BORDER_CORNER_DP = 3
-private const val PURE_WHITE_LUMINANCE = 1.0f
-private const val WCAG_CONTRAST_OFFSET = 0.05f
+private const val ACTIVE_BORDER_TINT_MIX = 0.6f
 private const val EMPTY_BAND_BORDER_ALPHA = 0.7f
 
-private val LightBandBorderColor = Color(0xFF141414)
-private val LightBandBorderLum = LightBandBorderColor.luminance()
+private val ActiveBorderDark = Color(0xFF141414)
 
 internal fun bandRectF(bandCount: Int, index: Int, w: Float, h: Float): Rect {
     val slot = BAND_AREA_SPAN_F / bandCount
@@ -135,23 +134,24 @@ fun ResistorCanvas(
         if (activeBandIndex in bandColors.indices && n > 0) {
             val rect = bandRectF(n, activeBandIndex, w, h)
             val base = bandColors[activeBandIndex]?.let { Color(it.argb) }
-            // Viền tương phản cực đại: chọn trắng/near-black theo tỉ lệ tương phản WCAG,
-            // không theo ngưỡng luminance cứng (dải trung gian như vàng kim tự về phía đen).
-            val borderColor = base?.let {
-                val lum = it.luminance()
-                val contrastWhite =
-                    (PURE_WHITE_LUMINANCE + WCAG_CONTRAST_OFFSET) / (lum + WCAG_CONTRAST_OFFSET)
-                val contrastBlack =
-                    (lum + WCAG_CONTRAST_OFFSET) / (LightBandBorderLum + WCAG_CONTRAST_OFFSET)
-                if (contrastWhite >= contrastBlack) Color.White else LightBandBorderColor
-            } ?: Color.White.copy(alpha = EMPTY_BAND_BORDER_ALPHA)
+            // Viền 2 lớp: lớp ngoài tối tạo độ tách khỏi dải + nền, lớp trong là màu
+            // dải hiện tại pha sáng nên viền nổi đúng theo màu của dải đang chọn.
+            val innerBorder = base?.let { lerp(it, Color.White, ACTIVE_BORDER_TINT_MIX) }
+                ?: Color.White.copy(alpha = EMPTY_BAND_BORDER_ALPHA)
             clipPath(body) {
                 drawRoundRect(
-                    color = borderColor,
+                    color = ActiveBorderDark,
                     topLeft = rect.topLeft,
                     size = rect.size,
                     cornerRadius = CornerRadius(ACTIVE_BORDER_CORNER_DP.dp.toPx()),
-                    style = Stroke(width = ACTIVE_BORDER_WIDTH_DP.dp.toPx())
+                    style = Stroke(width = ACTIVE_BORDER_OUTER_DP.dp.toPx())
+                )
+                drawRoundRect(
+                    color = innerBorder,
+                    topLeft = rect.topLeft,
+                    size = rect.size,
+                    cornerRadius = CornerRadius(ACTIVE_BORDER_CORNER_DP.dp.toPx()),
+                    style = Stroke(width = ACTIVE_BORDER_INNER_DP.dp.toPx())
                 )
             }
         }
