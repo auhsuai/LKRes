@@ -7,9 +7,9 @@ sealed interface ValueParseResult {
 
 enum class ValueErrorKind(val message: String) {
     EMPTY("Nhập giá trị cần tìm"),
-    INVALID_FORMAT("VD hợp lệ: 4700 · 4,7k · 4.7k · 4k7 · 1M"),
+    INVALID_FORMAT("Ví dụ: 4700, 4,7k, 4k7, 1M"),
     NON_POSITIVE("Giá trị phải lớn hơn 0"),
-    SMD_STYLE("Mã dạng 4R7 là mã SMD — hãy tra ở tab SMD")
+    SMD_STYLE("Đây là mã trở dán. Hãy tra ở tab Trở dán")
 }
 
 object ValueParser {

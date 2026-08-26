@@ -31,7 +31,7 @@ fun SmdScreen() {
         OutlinedTextField(
             value = code,
             onValueChange = { code = it },
-            label = { Text("Mã SMD (VD: 472, 4R7, 01C)") },
+            label = { Text("Mã trở dán (ví dụ: 472, 4R7, 01C)") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -46,7 +46,7 @@ fun SmdScreen() {
                 }
         }
         Text(
-            "3 số: 472 = 4.7 kΩ · 4 số: 4702 = 47 kΩ · R: 4R7 = 4.7 Ω · EIA-96: 01C = 10 kΩ",
+            "3 chữ số: 472 = 4,7 kΩ. 4 chữ số: 4702 = 47 kΩ. Mã R: 4R7 = 4,7 Ω. EIA-96: 01C = 10 kΩ",
             style = MaterialTheme.typography.bodySmall
         )
     }

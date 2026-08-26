@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -33,12 +32,12 @@ private const val BODY_BOTTOM_F = 0.72f
 private const val BAND_AREA_START_F = 0.12f
 private const val BAND_AREA_SPAN_F = 0.76f
 
-private const val ACTIVE_BORDER_WIDTH_DP = 2.5
+private const val ACTIVE_BORDER_WIDTH_DP = 3.0
 private const val ACTIVE_BORDER_CORNER_DP = 3
 private const val DARK_BAND_LUMINANCE_THRESHOLD = 0.5f
-private const val DARK_BAND_BORDER_WHITE_LERP_FRACTION = 0.60f
-private const val LIGHT_BAND_BORDER_BLACK_LERP_FRACTION = 0.55f
 private const val EMPTY_BAND_BORDER_ALPHA = 0.7f
+
+private val LightBandBorderColor = Color(0xFF141414)
 
 internal fun bandRectF(bandCount: Int, index: Int, w: Float, h: Float): Rect {
     val slot = BAND_AREA_SPAN_F / bandCount
@@ -134,12 +133,12 @@ fun ResistorCanvas(
         if (activeBandIndex in bandColors.indices && n > 0) {
             val rect = bandRectF(n, activeBandIndex, w, h)
             val base = bandColors[activeBandIndex]?.let { Color(it.argb) }
-            // Viền tự tương phản: dải tối -> viền sáng (lerp trắng), dải sáng -> viền tối (lerp đen).
+            // Viền tương phản cực đại: dải tối viền trắng tinh, dải sáng viền gần đen.
             val borderColor = base?.let {
                 if (it.luminance() < DARK_BAND_LUMINANCE_THRESHOLD) {
-                    lerp(it, Color.White, DARK_BAND_BORDER_WHITE_LERP_FRACTION)
+                    Color.White
                 } else {
-                    lerp(it, Color.Black, LIGHT_BAND_BORDER_BLACK_LERP_FRACTION)
+                    LightBandBorderColor
                 }
             } ?: Color.White.copy(alpha = EMPTY_BAND_BORDER_ALPHA)
             clipPath(body) {

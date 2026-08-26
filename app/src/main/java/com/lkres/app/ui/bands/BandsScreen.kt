@@ -213,10 +213,10 @@ fun BandsScreen() {
 }
 
 private fun roleTitle(role: BandRole): String = when (role) {
-    BandRole.DIGIT -> "Giá trị"
-    BandRole.MULTIPLIER -> "Nhân"
+    BandRole.DIGIT -> "Chữ số"
+    BandRole.MULTIPLIER -> "Hệ số nhân"
     BandRole.TOLERANCE -> "Dung sai"
-    BandRole.TCR -> "Hệ số nhiệt"
+    BandRole.TCR -> "Hệ số nhiệt độ"
 }
 
 internal fun optionsFor(role: BandRole): List<BandColor> = when (role) {
@@ -238,7 +238,8 @@ internal fun chipLabel(role: BandRole, c: BandColor): String = when (role) {
 
 private fun trimNum(v: Double): String {
     val rounded = Math.round(v * 100.0) / 100.0
-    return if (rounded == Math.floor(rounded)) rounded.toLong().toString() else rounded.toString()
+    val s = if (rounded == Math.floor(rounded)) rounded.toLong().toString() else rounded.toString()
+    return s.replace('.', ',')
 }
 
 private fun multiplierLabel(m: Double): String = when {

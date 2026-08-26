@@ -57,7 +57,7 @@ fun ReferenceScreen() {
             ) {
                 Spacer(Modifier.size(40.dp))
                 CellText("Tên", Modifier.weight(1.2f), header = true)
-                CellText("Digit", Modifier.weight(0.8f), header = true)
+                CellText("Chữ số", Modifier.weight(0.8f), header = true)
                 CellText("Nhân", Modifier.weight(1.45f), header = true)
                 CellText("Dung sai", Modifier.weight(1.1f), header = true)
                 CellText("TCR", Modifier.weight(1.1f), header = true)
@@ -71,13 +71,13 @@ fun ReferenceScreen() {
             ) {
                 Swatch(c.argb)
                 CellText(c.label, Modifier.weight(1.2f))
-                CellText(ColorCode.DIGITS[c]?.toString() ?: "—", Modifier.weight(0.8f))
+                CellText(ColorCode.DIGITS[c]?.toString() ?: "-", Modifier.weight(0.8f))
                 CellText("×${trim(ColorCode.MULTIPLIERS[c])}", Modifier.weight(1.45f), compact = true)
                 CellText(
-                    ColorCode.TOLERANCES[c]?.let { "±${trim(it)}%" } ?: "—",
+                    ColorCode.TOLERANCES[c]?.let { "±${trim(it)}%" } ?: "-",
                     Modifier.weight(1.1f)
                 )
-                CellText(ColorCode.TCR[c]?.toString() ?: "—", Modifier.weight(1.1f))
+                CellText(ColorCode.TCR[c]?.toString() ?: "-", Modifier.weight(1.1f))
             }
         }
         item { SectionTitle("Dung sai theo màu") }
@@ -114,7 +114,7 @@ fun ReferenceScreen() {
                 CellText("±${trim(ResistorCalculator.IMPLICIT_TOLERANCE_PERCENT)}%", Modifier.weight(1f))
             }
         }
-        item { SectionTitle("Hệ số nhiệt TCR (dải 6)") }
+        item { SectionTitle("Hệ số nhiệt độ (dải thứ 6)") }
         item {
             Row(
                 Modifier.fillMaxWidth(),
@@ -198,7 +198,8 @@ fun ReferenceScreen() {
 
 private fun trim(v: Double?): String {
     if (v == null) return "?"
-    return if (v >= 1.0 && v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
+    val s = if (v >= 1.0 && v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
+    return s.replace('.', ',')
 }
 
 @Composable

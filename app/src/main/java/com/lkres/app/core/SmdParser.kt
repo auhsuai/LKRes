@@ -8,9 +8,9 @@ sealed interface SmdResult {
 }
 
 enum class SmdErrorKind(val message: String) {
-    EMPTY("Nhập mã SMD cần tra"),
-    INVALID_CHARACTERS("Mã chỉ gồm chữ số, chữ R, và mã EIA-96"),
-    UNRECOGNIZED_LENGTH("Độ dài mã không nhận diện được (3–4 số, R-notation, hoặc EIA-96)"),
+    EMPTY("Nhập mã trở dán cần tra"),
+    INVALID_CHARACTERS("Mã chỉ gồm chữ số, chữ R hoặc mã EIA-96"),
+    UNRECOGNIZED_LENGTH("Mã không đúng định dạng chuẩn (3 chữ số, 4 chữ số, 4R7 hoặc EIA-96)"),
     EIA96_NOT_FOUND("Mã EIA-96 không tồn tại trong bảng chuẩn")
 }
 

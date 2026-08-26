@@ -107,7 +107,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
             value = query,
             onValueChange = { onQueryChange(it) },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Nhập giá trị: 4700 · 4,7k · 4k7") },
+            label = { Text("Nhập giá trị cần tìm (4700, 4,7k, 4k7)") },
             singleLine = true
         )
 
@@ -135,10 +135,10 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
             )
             is SearchUi.SuggestNearest -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    "Không encode được — gợi ý gần nhất: ${ResistorFormat.format(current.nearestOhms)}"
+                    "Giá trị không nằm trên dải chuẩn. Giá trị chuẩn gần nhất: ${ResistorFormat.format(current.nearestOhms)}"
                 )
                 OutlinedButton(onClick = { acceptSuggestion(current.nearestOhms) }) {
-                    Text("Dùng gợi ý")
+                    Text("Dùng giá trị này")
                 }
             }
             is SearchUi.Results -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

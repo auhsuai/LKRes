@@ -26,7 +26,7 @@ object ResistorCalculator {
 
         for (i in 0 until digitCount) {
             if (colors[i] !in ColorCode.DIGITS) {
-                return CalcResult.Invalid("Dải ${i + 1} không phải màu digit hợp lệ")
+                return CalcResult.Invalid("Dải ${i + 1} không phải màu chữ số hợp lệ")
             }
         }
         if (colors[multIndex] !in ColorCode.MULTIPLIERS) {
@@ -52,8 +52,8 @@ object ResistorCalculator {
         } else null
 
         val warning = when (colors.first()) {
-            BandColor.BLACK -> "Digit đầu là đen (0) — hiếm gặp trên điện trở thật"
-            BandColor.WHITE -> "Digit đầu là trắng (9) — hiếm gặp trên điện trở thật"
+            BandColor.BLACK -> "Chữ số đầu là 0 (đen), hiếm gặp trong thực tế"
+            BandColor.WHITE -> "Chữ số đầu là 9 (trắng), hiếm gặp trong thực tế"
             else -> null
         }
         return CalcResult.Success(Resistance(ohms, tolerance, tcr), warning)
