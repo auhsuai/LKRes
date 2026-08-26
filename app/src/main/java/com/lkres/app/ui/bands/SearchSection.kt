@@ -18,133 +18,81 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lkres.app.core.BandColor
 import com.lkres.app.core.ColorVariant
-import com.lkres.app.core.EncodingResult
 import com.lkres.app.core.ResistorFormat
-import com.lkres.app.core.ValueParseResult
-import com.lkres.app.core.ValueParser
-import com.lkres.app.core.ValueToColors
 import com.lkres.app.data.LkResStore
 
-private sealed interface SearchUi {
+internal sealed interface SearchUi {
     data object Idle : SearchUi
     data class Failed(val message: String) : SearchUi
     data class SuggestNearest(val nearestOhms: Double) : SearchUi
     data class Results(val ohms: Double, val variants: List<ColorVariant>) : SearchUi
 }
 
-private val DEFAULT_TOLERANCE = BandColor.GOLD
-private const val SIX_BANDS = 6
-private const val FOUR_BANDS = 4
+internal val DEFAULT_TOLERANCE = BandColor.GOLD
+internal const val SIX_BANDS = 6
+internal const val FOUR_BANDS = 4
 private val CARD_WIDTH = 155.dp
 private val DOT_SIZE = 26.dp
 
+internal fun defaultVariant(variants: List<ColorVariant>): ColorVariant? =
+    variants.firstOrNull { it.bandCount == FOUR_BANDS } ?: variants.firstOrNull()
+
+// Ô nhập search — đặt TRÊN CÙNG tab. State query nằm ở BandsScreen.
 @Composable
-fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
-    var query by remember { mutableStateOf("") }
-    var ui by remember { mutableStateOf<SearchUi>(SearchUi.Idle) }
-    var dismissed by remember { mutableStateOf(false) }
+internal fun SearchInput(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Nhập giá trị cần tìm (4700, 4,7k, 4k7)") },
+        singleLine = true
+    )
+}
 
-    // Bấm thẻ: áp colors + dung sai GOLD mặc định (giá trị hiện ngay, user chỉnh sau bằng
-    // chạm dải trên hình) + TCR null nếu 6 dải.
-    fun applySequence(variant: ColorVariant) {
-        val tcrPart = if (variant.bandCount == SIX_BANDS) listOf<BandColor?>(null) else emptyList()
-        onApplyColors(variant.colors + DEFAULT_TOLERANCE + tcrPart)
-    }
-
-    fun defaultVariant(variants: List<ColorVariant>): ColorVariant? =
-        variants.firstOrNull { it.bandCount == FOUR_BANDS } ?: variants.firstOrNull()
-
-    // Live search: parse + encode là hàm thuần, rẻ — chỉ chạy khi text thật sự đổi (trong event handler,
-    // không phải lúc recomposition) nên không cần memoize thêm.
-    fun evaluate(raw: String): SearchUi {
-        if (raw.isBlank()) return SearchUi.Idle
-        return when (val parsed = ValueParser.parse(raw)) {
-            is ValueParseResult.Error -> SearchUi.Failed(parsed.kind.message)
-            is ValueParseResult.Success -> when (val enc = ValueToColors.encode(parsed.ohms)) {
-                is EncodingResult.Encodable -> SearchUi.Results(parsed.ohms, enc.variants)
-                is EncodingResult.NotEncodable -> SearchUi.SuggestNearest(enc.nearestE24)
-            }
-        }
-    }
-
-    // Điểm vào DUY NHẤT cho thay đổi query (gõ phím).
-    // Encode thành công -> tự áp tổ hợp mặc định; parse lỗi/rỗng -> không đụng màu đã áp.
-    // Đang xoá text (độ dài giảm) -> chỉ cập nhật kết quả tìm kiếm,
-    // KHÔNG áp lại hình trở (xoá "4700" giữ nguyên 4.7k thay vì nhảy 470->47->4).
-    fun onQueryChange(newQuery: String, forceApply: Boolean = false) {
-        val isDeleting = !forceApply && newQuery.length < query.length
-        dismissed = false
-        query = newQuery
-        val next = evaluate(newQuery)
-        ui = next
-        if (!isDeleting && next is SearchUi.Results) {
-            defaultVariant(next.variants)?.let { applySequence(it) }
-        }
-    }
-
-    fun acceptSuggestion(nearestOhms: Double) {
-        when (val enc = ValueToColors.encode(nearestOhms)) {
-            is EncodingResult.Encodable -> {
-                dismissed = false
-                ui = SearchUi.Results(nearestOhms, enc.variants)
-            }
-            is EncodingResult.NotEncodable -> Unit
-        }
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { onQueryChange(it) },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Nhập giá trị cần tìm (4700, 4,7k, 4k7)") },
-            singleLine = true
+// Kết quả search (lỗi parse / gợi ý E24 gần nhất / các thẻ variant).
+// Đặt NGAY DƯỚI hàng chip chọn màu, TRƯỚC thanh chuyển dải.
+// State ui/dismissed + logic apply nằm ở BandsScreen: bấm thẻ -> onSelectVariant
+// (owner tự apply + ẩn thẻ); bấm gợi ý -> onAcceptSuggestion.
+@Composable
+internal fun SearchResultsSection(
+    ui: SearchUi,
+    dismissed: Boolean,
+    onSelectVariant: (ColorVariant) -> Unit,
+    onAcceptSuggestion: (Double) -> Unit
+) {
+    when (val current = ui) {
+        SearchUi.Idle -> Unit
+        is SearchUi.Failed -> Text(
+            current.message,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium
         )
-
-        when (val current = ui) {
-            SearchUi.Idle -> Unit
-            is SearchUi.Failed -> Text(
-                current.message,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
+        is SearchUi.SuggestNearest -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "Giá trị không thuộc dải chuẩn E24. Gợi ý gần nhất: ${ResistorFormat.format(current.nearestOhms)}"
             )
-            is SearchUi.SuggestNearest -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    "Giá trị không thuộc dải chuẩn E24. Gợi ý gần nhất: ${ResistorFormat.format(current.nearestOhms)}"
-                )
-                OutlinedButton(onClick = { acceptSuggestion(current.nearestOhms) }) {
-                    Text("Dùng giá trị này")
-                }
+            OutlinedButton(onClick = { onAcceptSuggestion(current.nearestOhms) }) {
+                Text("Dùng giá trị này")
             }
-            is SearchUi.Results -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val visibleVariants = if (LkResStore.parallelResults) {
-                    current.variants
-                } else {
-                    listOfNotNull(defaultVariant(current.variants))
-                }
-                if (!dismissed) {
-                    FlowRow(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        visibleVariants.forEach { variant ->
-                            VariantCard(
-                                variant = variant,
-                                onSelect = {
-                                    applySequence(variant)
-                                    dismissed = true
-                                }
-                            )
-                        }
+        }
+        is SearchUi.Results -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val visibleVariants = if (LkResStore.parallelResults) {
+                current.variants
+            } else {
+                listOfNotNull(defaultVariant(current.variants))
+            }
+            if (!dismissed) {
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    visibleVariants.forEach { variant ->
+                        VariantCard(variant = variant, onSelect = { onSelectVariant(variant) })
                     }
                 }
             }

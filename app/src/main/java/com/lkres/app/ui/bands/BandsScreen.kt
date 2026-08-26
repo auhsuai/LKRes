@@ -3,6 +3,7 @@ package com.lkres.app.ui.bands
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +24,11 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,23 +40,84 @@ import com.lkres.app.core.BandColor
 import com.lkres.app.core.BandRole
 import com.lkres.app.core.CalcResult
 import com.lkres.app.core.ColorCode
+import com.lkres.app.core.ColorVariant
+import com.lkres.app.core.EncodingResult
 import com.lkres.app.core.ResistorFormat
+import com.lkres.app.core.ValueParseResult
+import com.lkres.app.core.ValueParser
+import com.lkres.app.core.ValueToColors
 import com.lkres.app.core.rolesFor
 import com.lkres.app.data.LkResStore
 import com.lkres.app.ui.resistor.ResistorCanvas
 
 internal fun chipColor(c: BandColor): Color = Color(c.argb)
 
+private val BAND_CONTROL_SIZE = 36.dp
+private val BAND_INDEX_SIZE = 30.dp
+private val BAND_BAR_SPACING = 4.dp
+
 @Composable
 fun BandsScreen() {
     val state = LkResStore.bands
 
+    // State search giữ tại đây để tách bố cục: ô nhập TRÊN CÙNG tab,
+    // kết quả ngay dưới hàng chip chọn màu (trước thanh chuyển dải).
+    var query by remember { mutableStateOf("") }
+    var ui by remember { mutableStateOf<SearchUi>(SearchUi.Idle) }
+    var dismissed by remember { mutableStateOf(false) }
+
+    // Bấm thẻ: áp colors + dung sai GOLD mặc định (giá trị hiện ngay, user chỉnh sau bằng
+    // chạm dải trên hình) + TCR null nếu 6 dải.
+    fun applySequence(variant: ColorVariant) {
+        val tcrPart = if (variant.bandCount == SIX_BANDS) listOf<BandColor?>(null) else emptyList()
+        state.applyColors(variant.colors + DEFAULT_TOLERANCE + tcrPart)
+        LkResStore.persistBands()
+    }
+
+    // Live search: parse + encode là hàm thuần, rẻ — chỉ chạy khi text thật sự đổi (trong event handler,
+    // không phải lúc recomposition) nên không cần memoize thêm.
+    fun evaluate(raw: String): SearchUi {
+        if (raw.isBlank()) return SearchUi.Idle
+        return when (val parsed = ValueParser.parse(raw)) {
+            is ValueParseResult.Error -> SearchUi.Failed(parsed.kind.message)
+            is ValueParseResult.Success -> when (val enc = ValueToColors.encode(parsed.ohms)) {
+                is EncodingResult.Encodable -> SearchUi.Results(parsed.ohms, enc.variants)
+                is EncodingResult.NotEncodable -> SearchUi.SuggestNearest(enc.nearestE24)
+            }
+        }
+    }
+
+    // Điểm vào DUY NHẤT cho thay đổi query (gõ phím).
+    // Encode thành công -> tự áp tổ hợp mặc định; parse lỗi/rỗng -> không đụng màu đã áp.
+    // Đang xoá text (độ dài giảm) -> chỉ cập nhật kết quả tìm kiếm,
+    // KHÔNG áp lại hình trở (xoá "4700" giữ nguyên 4.7k thay vì nhảy 470->47->4).
+    fun onQueryChange(newQuery: String, forceApply: Boolean = false) {
+        val isDeleting = !forceApply && newQuery.length < query.length
+        dismissed = false
+        query = newQuery
+        val next = evaluate(newQuery)
+        ui = next
+        if (!isDeleting && next is SearchUi.Results) {
+            defaultVariant(next.variants)?.let { applySequence(it) }
+        }
+    }
+
+    fun acceptSuggestion(nearestOhms: Double) {
+        when (val enc = ValueToColors.encode(nearestOhms)) {
+            is EncodingResult.Encodable -> {
+                dismissed = false
+                ui = SearchUi.Results(nearestOhms, enc.variants)
+            }
+            is EncodingResult.NotEncodable -> Unit
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
 
-        SearchSection(onApplyColors = { colors ->
-            state.applyColors(colors)
-            LkResStore.persistBands()
-        })
+        SearchInput(
+            query = query,
+            onQueryChange = { onQueryChange(it) }
+        )
 
         ResistorCanvas(
             bandColors = state.selected,
@@ -120,6 +185,16 @@ fun BandsScreen() {
                 }
             }
 
+            SearchResultsSection(
+                ui = ui,
+                dismissed = dismissed,
+                onSelectVariant = { variant ->
+                    applySequence(variant)
+                    dismissed = true
+                },
+                onAcceptSuggestion = { acceptSuggestion(it) }
+            )
+
             when (val result = state.result) {
                 is CalcResult.Invalid -> Text(
                     result.reason,
@@ -134,104 +209,113 @@ fun BandsScreen() {
     }
 }
 
-// Thanh chuyển dải cố định ĐÁY màn hình:
-// AUTO: [−] ◀ (1)(2)(3)(4) ▶ [+] ; MANUAL: ◀ (1)(2)(3)(4) ▶ (segmented ở vùng cuộn).
+// Thanh chuyển dải cố định ĐÁY màn hình, căn giữa, cuộn ngang khi tràn (@360dp vẫn đủ 6 dải):
+// AUTO: [−] ◀ (1)(2)(3)(4)(5)(6) ▶ [+] ; MANUAL: ◀ (1)...(N) ▶ (segmented ở vùng cuộn).
 @Composable
 private fun BandBar(state: BandsState) {
-    when (state.mode) {
-        BandsMode.AUTO -> Row(
-            Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    val scrollState = rememberScrollState()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .horizontalScroll(scrollState),
+        // Nội dung vừa màn hình -> Center. Khi tràn phải về Start vì Center + horizontalScroll
+        // cắt mất mép trái (phần âm offset không cuộn tới được).
+        horizontalArrangement = if (scrollState.maxValue == 0) Arrangement.Center else Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(BAND_BAR_SPACING),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BandAdjustButton(
-                label = "−",
-                enabled = state.canRemoveBand,
-                onClick = {
-                    state.removeBand()
-                    LkResStore.persistBands()
+            when (state.mode) {
+                BandsMode.AUTO -> {
+                    BandAdjustButton(
+                        label = "−",
+                        enabled = state.canRemoveBand,
+                        onClick = {
+                            state.removeBand()
+                            LkResStore.persistBands()
+                        }
+                    )
+                    BandNav(state)
+                    BandAdjustButton(
+                        label = "+",
+                        enabled = state.canAddBand,
+                        onClick = {
+                            state.addBand()
+                            LkResStore.persistBands()
+                        }
+                    )
                 }
-            )
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                ActiveBandNav(state)
+                BandsMode.MANUAL -> BandNav(state)
             }
-            BandAdjustButton(
-                label = "+",
-                enabled = state.canAddBand,
-                onClick = {
-                    state.addBand()
-                    LkResStore.persistBands()
-                }
-            )
-        }
-        BandsMode.MANUAL -> Box(
-            Modifier.fillMaxWidth().padding(top = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            ActiveBandNav(state)
         }
     }
 }
 
+// ◀ + hàng ô chỉ mục + ▶ dùng chung cho 2 mode.
 @Composable
-private fun ActiveBandNav(state: BandsState) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextButton(
-            onClick = {
-                state.moveActive(-1)
-                LkResStore.persistBands()
-            },
-            enabled = state.activeBand > 0
-        ) { Text("◀") }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repeat(state.bandCount) { i ->
-                val isActive = i == state.activeBand
-                Box(
-                    Modifier
-                        .size(36.dp)
-                        .background(
-                            if (isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            RoundedCornerShape(10.dp)
-                        )
-                        .border(
-                            width = if (isActive) 2.dp else 1.dp,
-                            color = if (isActive) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outline
-                            },
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .clickable {
-                            state.setActiveBand(i)
-                            LkResStore.persistBands()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "${i + 1}",
-                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isActive) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        }
-                    )
-                }
-            }
+private fun BandNav(state: BandsState) {
+    BandAdjustButton(
+        label = "◀",
+        enabled = state.activeBand > 0,
+        onClick = {
+            state.moveActive(-1)
+            LkResStore.persistBands()
         }
+    )
 
-        TextButton(
-            onClick = {
-                state.moveActive(1)
+    Row(horizontalArrangement = Arrangement.spacedBy(BAND_BAR_SPACING)) {
+        repeat(state.bandCount) { i ->
+            BandIndexBox(state = state, index = i)
+        }
+    }
+
+    BandAdjustButton(
+        label = "▶",
+        enabled = state.activeBand < state.bandCount - 1,
+        onClick = {
+            state.moveActive(1)
+            LkResStore.persistBands()
+        }
+    )
+}
+
+@Composable
+private fun BandIndexBox(state: BandsState, index: Int) {
+    val isActive = index == state.activeBand
+    Box(
+        Modifier
+            .size(BAND_INDEX_SIZE)
+            .background(
+                if (isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                RoundedCornerShape(10.dp)
+            )
+            .border(
+                width = if (isActive) 2.dp else 1.dp,
+                color = if (isActive) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.outline
+                },
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable {
+                state.setActiveBand(index)
                 LkResStore.persistBands()
             },
-            enabled = state.activeBand < state.bandCount - 1
-        ) { Text("▶") }
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            "${index + 1}",
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+            color = if (isActive) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
+        )
     }
 }
 
@@ -239,7 +323,7 @@ private fun ActiveBandNav(state: BandsState) {
 private fun BandAdjustButton(label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
-            .size(36.dp)
+            .size(BAND_CONTROL_SIZE)
             .clip(RoundedCornerShape(10.dp))
             .background(if (enabled) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
             .border(
