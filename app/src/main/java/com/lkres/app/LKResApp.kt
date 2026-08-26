@@ -1,5 +1,9 @@
 package com.lkres.app
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.view.WindowManager
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -7,6 +11,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -139,8 +144,8 @@ private fun gearIcon(): ImageVector = ImageVector.Builder(
 }.build()
 
 private val TABS = listOf(
-    Tab("bands", "Dải màu", stripeIcon()),
-    Tab("smd", "SMD", chipIcon()),
+    Tab("bands", "Trở cắm", stripeIcon()),
+    Tab("smd", "Trở dán", chipIcon()),
     Tab("reference", "Tham khảo", bookIcon()),
     Tab("settings", "Cài đặt", gearIcon()),
 )
@@ -152,6 +157,20 @@ fun LKResApp() {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+
+    // FLAG_KEEP_SCREEN_ON: cách chính thức để giữ màn hình sáng (developer.android.com —
+    // screen-on guide), chỉ đặt được trên window của Activity, tự hết hiệu lực khi app rời
+    // foreground nên không cần wake lock (tốn pin hơn).
+    val keepScreenOn = LkResStore.keepScreenOn
+    DisposableEffect(keepScreenOn) {
+        val window = appContext.findActivity()?.window
+        if (keepScreenOn && window != null) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     Scaffold(bottomBar = {
         NavigationBar {
@@ -182,4 +201,10 @@ fun LKResApp() {
             composable("settings") { SettingsScreen() }
         }
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

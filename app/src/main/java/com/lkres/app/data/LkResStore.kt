@@ -41,12 +41,14 @@ object LkResStore {
     private val KEY_PARALLEL_RESULTS = booleanPreferencesKey("parallel_results")
     private val KEY_HISTORY_ENABLED = booleanPreferencesKey("history_enabled")
     private val KEY_RECENT_SEARCHES = stringPreferencesKey("recent_searches")
+    private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
 
     val bands = BandsState()
 
     private var _parallelResults by mutableStateOf(true)
     private var _historyEnabled by mutableStateOf(true)
     private var _recentSearches by mutableStateOf<List<String>>(emptyList())
+    private var _keepScreenOn by mutableStateOf(false)
 
     val parallelResults: Boolean
         get() = _parallelResults
@@ -54,6 +56,8 @@ object LkResStore {
         get() = _historyEnabled
     val recentSearches: List<String>
         get() = _recentSearches
+    val keepScreenOn: Boolean
+        get() = _keepScreenOn
 
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -99,6 +103,7 @@ object LkResStore {
         _parallelResults = prefs[KEY_PARALLEL_RESULTS] ?: true
         _historyEnabled = prefs[KEY_HISTORY_ENABLED] ?: true
         _recentSearches = decodeRecents(prefs[KEY_RECENT_SEARCHES])
+        _keepScreenOn = prefs[KEY_KEEP_SCREEN_ON] ?: false
     }
 
     fun persistBands() {
@@ -130,6 +135,11 @@ object LkResStore {
     fun setHistoryEnabled(value: Boolean) {
         _historyEnabled = value
         saveFlag(KEY_HISTORY_ENABLED, value)
+    }
+
+    fun setKeepScreenOn(value: Boolean) {
+        _keepScreenOn = value
+        saveFlag(KEY_KEEP_SCREEN_ON, value)
     }
 
     fun clearRecentSearches() {

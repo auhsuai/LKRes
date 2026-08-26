@@ -45,7 +45,7 @@ fun SettingsScreen() {
                     LkResStore.persistBands()
                 },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-            ) { Text("Auto") }
+            ) { Text("Tự động") }
             SegmentedButton(
                 selected = LkResStore.bands.mode == BandsMode.MANUAL,
                 onClick = {
@@ -53,7 +53,7 @@ fun SettingsScreen() {
                     LkResStore.persistBands()
                 },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-            ) { Text("Manual") }
+            ) { Text("Thủ công") }
         }
 
         HorizontalDivider()
@@ -88,6 +88,14 @@ fun SettingsScreen() {
             onClick = LkResStore::clearRecentSearches,
             enabled = LkResStore.recentSearches.isNotEmpty()
         ) { Text("Xoá lịch sử") }
+
+        HorizontalDivider()
+
+        ToggleRow(
+            title = "Giữ màn hình sáng khi dùng app",
+            checked = LkResStore.keepScreenOn,
+            onChange = LkResStore::setKeepScreenOn
+        )
 
         HorizontalDivider()
 

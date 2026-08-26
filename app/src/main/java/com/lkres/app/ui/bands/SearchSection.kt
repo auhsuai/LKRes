@@ -2,19 +2,16 @@ package com.lkres.app.ui.bands
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -26,13 +23,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.lkres.app.core.BandColor
-import com.lkres.app.core.BandRole
-import com.lkres.app.core.ColorCode
 import com.lkres.app.core.ColorVariant
 import com.lkres.app.core.EncodingResult
 import com.lkres.app.core.ResistorFormat
@@ -58,12 +51,12 @@ private val DOT_SIZE = 26.dp
 fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
     var query by remember { mutableStateOf("") }
     var ui by remember { mutableStateOf<SearchUi>(SearchUi.Idle) }
-    var tolerances by remember { mutableStateOf(emptyMap<Int, BandColor>()) }
-    var tcrs by remember { mutableStateOf(emptyMap<Int, BandColor?>()) }
 
-    fun applySequence(variant: ColorVariant, tolColor: BandColor, tcrColor: BandColor?) {
-        val tcrPart = if (variant.bandCount == SIX_BANDS) listOf<BandColor?>(tcrColor) else emptyList()
-        onApplyColors(variant.colors + tolColor + tcrPart)
+    // Bấm thẻ: áp colors + dung sai GOLD mặc định (giá trị hiện ngay, user chỉnh sau bằng
+    // chạm dải trên hình) + TCR null nếu 6 dải.
+    fun applySequence(variant: ColorVariant) {
+        val tcrPart = if (variant.bandCount == SIX_BANDS) listOf<BandColor?>(null) else emptyList()
+        onApplyColors(variant.colors + DEFAULT_TOLERANCE + tcrPart)
     }
 
     fun defaultVariant(variants: List<ColorVariant>): ColorVariant? =
@@ -89,17 +82,13 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
         val next = evaluate(newQuery)
         ui = next
         if (next is SearchUi.Results) {
-            tolerances = emptyMap()
-            tcrs = emptyMap()
-            defaultVariant(next.variants)?.let { applySequence(it, DEFAULT_TOLERANCE, null) }
+            defaultVariant(next.variants)?.let { applySequence(it) }
         }
     }
 
     fun acceptSuggestion(nearestOhms: Double) {
         when (val enc = ValueToColors.encode(nearestOhms)) {
             is EncodingResult.Encodable -> {
-                tolerances = emptyMap()
-                tcrs = emptyMap()
                 LkResStore.addRecentSearch(ResistorFormat.format(nearestOhms))
                 ui = SearchUi.Results(nearestOhms, enc.variants)
             }
@@ -162,25 +151,11 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     visibleVariants.forEach { variant ->
-                        val count = variant.bandCount
-                        val selectedTcr = if (count == SIX_BANDS) tcrs[count] else null
                         VariantCard(
                             variant = variant,
-                            tolerance = tolerances[count] ?: DEFAULT_TOLERANCE,
-                            tcr = selectedTcr,
                             onSelect = {
                                 LkResStore.addRecentSearch(query)
-                                applySequence(variant, tolerances[count] ?: DEFAULT_TOLERANCE, selectedTcr)
-                            },
-                            onToleranceChange = { c ->
-                                tolerances = tolerances + (count to c)
-                                LkResStore.addRecentSearch(query)
-                                applySequence(variant, c, selectedTcr)
-                            },
-                            onTcrChange = { c ->
-                                tcrs = tcrs + (count to c)
-                                LkResStore.addRecentSearch(query)
-                                applySequence(variant, tolerances[count] ?: DEFAULT_TOLERANCE, c)
+                                applySequence(variant)
                             }
                         )
                     }
@@ -191,14 +166,7 @@ fun SearchSection(onApplyColors: (List<BandColor?>) -> Unit) {
 }
 
 @Composable
-private fun VariantCard(
-    variant: ColorVariant,
-    tolerance: BandColor,
-    tcr: BandColor?,
-    onSelect: () -> Unit,
-    onToleranceChange: (BandColor) -> Unit,
-    onTcrChange: (BandColor?) -> Unit
-) {
+private fun VariantCard(variant: ColorVariant, onSelect: () -> Unit) {
     Card(onClick = onSelect, modifier = Modifier.width(CARD_WIDTH)) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("${variant.bandCount} dải", style = MaterialTheme.typography.titleMedium)
@@ -212,65 +180,6 @@ private fun VariantCard(
                     )
                 }
             }
-            ChipFlow("Dung sai") {
-                optionsFor(BandRole.TOLERANCE).forEach { c ->
-                    RoleChip(
-                        color = c,
-                        label = chipLabel(BandRole.TOLERANCE, c),
-                        selected = c == tolerance,
-                        onClick = { onToleranceChange(c) }
-                    )
-                }
-            }
-            if (variant.bandCount == SIX_BANDS) {
-                ChipFlow("TCR (ppm/°C)") {
-                    ColorCode.TCR.keys.sortedBy { it.ordinal }.forEach { c ->
-                        RoleChip(
-                            color = c,
-                            label = chipLabel(BandRole.TCR, c),
-                            selected = c == tcr,
-                            onClick = { onTcrChange(c) }
-                        )
-                    }
-                    EmptyTcrChip(selected = tcr == null, onClick = { onTcrChange(null) })
-                }
-            }
         }
-    }
-}
-
-@Composable
-private fun ChipFlow(label: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
-        FlowRow(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) { content() }
-    }
-}
-
-@Composable
-private fun EmptyTcrChip(selected: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .heightIn(min = 40.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(
-                width = if (selected) 3.dp else 1.dp,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
-                shape = RoundedCornerShape(20.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Trống", style = MaterialTheme.typography.labelMedium)
     }
 }

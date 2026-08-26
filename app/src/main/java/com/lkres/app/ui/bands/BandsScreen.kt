@@ -213,7 +213,7 @@ fun BandsScreen() {
 }
 
 private fun roleTitle(role: BandRole): String = when (role) {
-    BandRole.DIGIT -> "Digit"
+    BandRole.DIGIT -> "Giá trị"
     BandRole.MULTIPLIER -> "Nhân"
     BandRole.TOLERANCE -> "Dung sai"
     BandRole.TCR -> "Hệ số nhiệt"
