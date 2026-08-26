@@ -17,6 +17,7 @@ object ResistorFormat {
 
     private fun formatNumber(v: Double): String {
         val rounded = Math.round(v * 100.0) / 100.0
-        return if (rounded == Math.floor(rounded)) rounded.toLong().toString() else rounded.toString()
+        val s = if (rounded == Math.floor(rounded)) rounded.toLong().toString() else rounded.toString()
+        return s.replace('.', ',')
     }
 }
