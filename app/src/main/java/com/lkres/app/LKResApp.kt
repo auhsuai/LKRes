@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalContext
@@ -27,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.lkres.app.data.LkResStore
+import com.lkres.app.ui.components.ComponentsScreen
 import com.lkres.app.ui.reference.ReferenceScreen
 import com.lkres.app.ui.resistor.ResistorScreen
 import com.lkres.app.ui.settings.SettingsScreen
@@ -108,8 +110,41 @@ private fun gearIcon(): ImageVector = ImageVector.Builder(
     close()
 }.build()
 
+private fun transistorIcon(): ImageVector = ImageVector.Builder(
+    name = "TransistorIcon",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f,
+).path(
+    stroke = SolidColor(Color.Black),
+    strokeLineWidth = 2f,
+    strokeLineCap = StrokeCap.Round,
+) {
+    // Vỏ tròn.
+    moveTo(12f, 3.5f)
+    curveTo(16.69f, 3.5f, 20.5f, 7.31f, 20.5f, 12f)
+    curveTo(20.5f, 16.69f, 16.69f, 20.5f, 12f, 20.5f)
+    curveTo(7.31f, 20.5f, 3.5f, 16.69f, 3.5f, 12f)
+    curveTo(3.5f, 7.31f, 7.31f, 3.5f, 12f, 3.5f)
+    close()
+    // Thanh base dọc.
+    moveTo(10.5f, 7.5f)
+    lineTo(10.5f, 16.5f)
+    // Chân base ngang trái.
+    moveTo(3.5f, 12f)
+    lineTo(10.5f, 12f)
+    // Collector chéo lên phải.
+    moveTo(10.5f, 9.5f)
+    lineTo(18f, 5.5f)
+    // Emitter chéo xuống phải.
+    moveTo(10.5f, 14.5f)
+    lineTo(18f, 18.5f)
+}.build()
+
 private val TABS = listOf(
     Tab("resistor", "Điện trở", stripeIcon()),
+    Tab("components", "Linh kiện", transistorIcon()),
     Tab("reference", "Tham khảo", bookIcon()),
     Tab("settings", "Cài đặt", gearIcon()),
 )
@@ -160,6 +195,7 @@ fun LKResApp() {
             modifier = Modifier.padding(padding),
         ) {
             composable("resistor") { ResistorScreen() }
+            composable("components") { ComponentsScreen() }
             composable("reference") { ReferenceScreen() }
             composable("settings") { SettingsScreen() }
         }
