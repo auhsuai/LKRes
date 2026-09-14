@@ -43,11 +43,15 @@ internal fun defaultVariant(variants: List<ColorVariant>): ColorVariant? =
 
 // Ô nhập search — đặt TRÊN CÙNG tab. State query nằm ở BandsScreen.
 @Composable
-internal fun SearchInput(query: String, onQueryChange: (String) -> Unit) {
+internal fun SearchInput(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         label = { Text("Nhập giá trị cần tìm (4700, 4,7k, 4k7)") },
         singleLine = true
     )

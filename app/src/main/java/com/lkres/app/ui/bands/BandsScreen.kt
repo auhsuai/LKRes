@@ -48,6 +48,7 @@ import com.lkres.app.core.ValueParser
 import com.lkres.app.core.ValueToColors
 import com.lkres.app.core.rolesFor
 import com.lkres.app.data.LkResStore
+import com.lkres.app.ui.common.SwapViewButton
 import com.lkres.app.ui.resistor.ResistorCanvas
 
 internal fun chipColor(c: BandColor): Color = Color(c.argb)
@@ -57,7 +58,7 @@ private val BAND_INDEX_SIZE = 30.dp
 private val BAND_BAR_SPACING = 4.dp
 
 @Composable
-fun BandsScreen() {
+fun BandsScreen(onSwapView: () -> Unit) {
     val state = LkResStore.bands
 
     // State search giữ tại đây để tách bố cục: ô nhập TRÊN CÙNG tab,
@@ -114,10 +115,20 @@ fun BandsScreen() {
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
 
-        SearchInput(
-            query = query,
-            onQueryChange = { onQueryChange(it) }
-        )
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SearchInput(
+                query = query,
+                onQueryChange = { onQueryChange(it) },
+                modifier = Modifier.weight(1f)
+            )
+            SwapViewButton(
+                contentDescription = "Chuyển sang Trở dán",
+                onClick = onSwapView
+            )
+        }
 
         ResistorCanvas(
             bandColors = state.selected,

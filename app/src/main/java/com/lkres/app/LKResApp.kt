@@ -27,10 +27,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.lkres.app.data.LkResStore
-import com.lkres.app.ui.bands.BandsScreen
 import com.lkres.app.ui.reference.ReferenceScreen
+import com.lkres.app.ui.resistor.ResistorScreen
 import com.lkres.app.ui.settings.SettingsScreen
-import com.lkres.app.ui.smd.SmdScreen
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
@@ -55,40 +54,6 @@ private fun stripeIcon(): ImageVector = ImageVector.Builder(
     lineTo(20f, 5f)
     lineTo(20f, 19f)
     lineTo(16f, 19f)
-    close()
-}.build()
-
-private fun chipIcon(): ImageVector = ImageVector.Builder(
-    name = "SmdChipIcon",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f,
-).path(fill = SolidColor(Color.Black)) {
-    moveTo(7f, 7f)
-    lineTo(17f, 7f)
-    lineTo(17f, 17f)
-    lineTo(7f, 17f)
-    close()
-    moveTo(4f, 9f)
-    lineTo(7f, 9f)
-    lineTo(7f, 11f)
-    lineTo(4f, 11f)
-    close()
-    moveTo(4f, 13f)
-    lineTo(7f, 13f)
-    lineTo(7f, 15f)
-    lineTo(4f, 15f)
-    close()
-    moveTo(17f, 9f)
-    lineTo(20f, 9f)
-    lineTo(20f, 11f)
-    lineTo(17f, 11f)
-    close()
-    moveTo(17f, 13f)
-    lineTo(20f, 13f)
-    lineTo(20f, 15f)
-    lineTo(17f, 15f)
     close()
 }.build()
 
@@ -144,8 +109,7 @@ private fun gearIcon(): ImageVector = ImageVector.Builder(
 }.build()
 
 private val TABS = listOf(
-    Tab("bands", "Trở cắm", stripeIcon()),
-    Tab("smd", "Trở dán", chipIcon()),
+    Tab("resistor", "Điện trở", stripeIcon()),
     Tab("reference", "Tham khảo", bookIcon()),
     Tab("settings", "Cài đặt", gearIcon()),
 )
@@ -192,11 +156,10 @@ fun LKResApp() {
     }) { padding ->
         NavHost(
             navController = navController,
-            startDestination = "bands",
+            startDestination = "resistor",
             modifier = Modifier.padding(padding),
         ) {
-            composable("bands") { BandsScreen() }
-            composable("smd") { SmdScreen() }
+            composable("resistor") { ResistorScreen() }
             composable("reference") { ReferenceScreen() }
             composable("settings") { SettingsScreen() }
         }

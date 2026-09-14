@@ -16,6 +16,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.lkres.app.core.BandColor
 import com.lkres.app.ui.bands.BandsMode
 import com.lkres.app.ui.bands.BandsState
+import com.lkres.app.ui.resistor.ResistorView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,16 +38,20 @@ object LkResStore {
     private val KEY_ACTIVE_BAND = intPreferencesKey("active_band")
     private val KEY_PARALLEL_RESULTS = booleanPreferencesKey("parallel_results")
     private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+    private val KEY_RESISTOR_VIEW = stringPreferencesKey("resistor_view")
 
     val bands = BandsState()
 
     private var _parallelResults by mutableStateOf(true)
     private var _keepScreenOn by mutableStateOf(false)
+    private var _resistorView by mutableStateOf(ResistorView.BANDS)
 
     val parallelResults: Boolean
         get() = _parallelResults
     val keepScreenOn: Boolean
         get() = _keepScreenOn
+    val resistorView: ResistorView
+        get() = _resistorView
 
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -91,6 +96,9 @@ object LkResStore {
         }
         _parallelResults = prefs[KEY_PARALLEL_RESULTS] ?: true
         _keepScreenOn = prefs[KEY_KEEP_SCREEN_ON] ?: false
+        _resistorView = runCatching {
+            ResistorView.valueOf(prefs[KEY_RESISTOR_VIEW] ?: ResistorView.BANDS.name)
+        }.getOrDefault(ResistorView.BANDS)
     }
 
     fun persistBands() {
@@ -116,12 +124,17 @@ object LkResStore {
 
     fun setParallelResults(value: Boolean) {
         _parallelResults = value
-        saveFlag(KEY_PARALLEL_RESULTS, value)
+        savePref(KEY_PARALLEL_RESULTS, value)
     }
 
     fun setKeepScreenOn(value: Boolean) {
         _keepScreenOn = value
-        saveFlag(KEY_KEEP_SCREEN_ON, value)
+        savePref(KEY_KEEP_SCREEN_ON, value)
+    }
+
+    fun setResistorView(value: ResistorView) {
+        _resistorView = value
+        savePref(KEY_RESISTOR_VIEW, value.name)
     }
 
     internal fun encodeSelected(colors: List<BandColor?>): String =
@@ -136,13 +149,13 @@ object LkResStore {
             .takeIf { it.size in BandsState.MIN_BAND_COUNT..BandsState.MAX_BAND_COUNT }
     }
 
-    private fun saveFlag(key: Preferences.Key<Boolean>, value: Boolean) {
+    private fun <T> savePref(key: Preferences.Key<T>, value: T) {
         val ctx = appContext ?: return
         ioScope.launch {
             try {
                 ctx.lkresDataStore.edit { it[key] = value }
             } catch (e: Exception) {
-                Log.w(TAG, "saveFlag ${key.name} thất bại", e)
+                Log.w(TAG, "savePref ${key.name} thất bại", e)
             }
         }
     }
