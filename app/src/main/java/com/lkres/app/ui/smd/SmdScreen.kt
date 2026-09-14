@@ -38,7 +38,7 @@ fun SmdScreen(onSwapView: () -> Unit) {
             OutlinedTextField(
                 value = code,
                 onValueChange = { code = it },
-                placeholder = { Text("Mã trở dán (472, 4R7, 01C)") },
+                placeholder = { Text("Mã trở dán") },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )

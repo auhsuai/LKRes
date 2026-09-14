@@ -131,7 +131,7 @@ private fun RootContent(
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
-            placeholder = { Text("Tìm linh kiện (C1815, K30A...)") },
+            placeholder = { Text("Tìm linh kiện") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -209,7 +209,11 @@ private fun ComponentRow(component: Component, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
     ) {
-        Text(component.name, style = MaterialTheme.typography.titleMedium)
+        Text(
+            component.name,
+            style = MaterialTheme.typography.titleMedium,
+            textDecoration = TextDecoration.Underline,
+        )
         Text(
             "${component.kind} · ${component.packageName}",
             style = MaterialTheme.typography.bodyMedium,

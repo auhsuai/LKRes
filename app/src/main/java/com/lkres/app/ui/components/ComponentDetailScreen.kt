@@ -29,9 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lkres.app.core.Component
 
-private val BodyColor = Color(0xFF1C1C1E)
-private val BodyBorder = Color(0xFF4A4A4E)
-private val LeadColor = Color(0xFF9EA3A8)
+private val BodyColor = Color(0xFF0B0B0D)
+private val BodyBorder = Color(0xFF5C5C62)
+private val LeadColor = Color(0xFFC6CACE)
 
 private const val BODY_LEFT_F = 0.32f
 private const val BODY_RIGHT_F = 0.68f
@@ -41,8 +41,9 @@ private const val SHOULDER_F = 0.45f
 private const val LEG_BOTTOM_F = 0.82f
 private const val NAME_FONT_SP = 20f
 private const val PIN_FONT_SP = 14f
-private const val LEG_WIDTH_DP = 4.0
-private const val BORDER_WIDTH_DP = 1.5
+private const val LEG_WIDTH_DP = 6.0
+private const val LEG_START_INSIDE_DP = 8.0
+private const val BORDER_WIDTH_DP = 2.0
 private const val PIN_LABEL_GAP_DP = 8.0
 
 @Composable
@@ -69,10 +70,8 @@ fun ComponentDetailScreen(component: Component, onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth().height(200.dp),
         )
 
-        Text("Nhìn mặt có chữ, chân trái → phải", style = MaterialTheme.typography.bodySmall)
-
         component.pins.forEachIndexed { index, pin ->
-            Text("${positionLabel(index)}: ${pin.symbol} — ${pin.function}")
+            Text("${positionLabel(index)}: cực ${pin.symbol}")
         }
     }
 }
@@ -108,7 +107,25 @@ private fun TO92Canvas(component: Component, modifier: Modifier = Modifier) {
         val bodyCenterX = (bodyLeft + bodyRight) / 2f
         val shoulderY = bodyTop + (bodyBottom - bodyTop) * SHOULDER_F
 
-        // Thân: đáy phẳng, hai vai bo tròn lên đỉnh (silhouette TO-92).
+        // Chân hướng xuống: chia đều chiều rộng thân (3 chân -> 25% / 50% / 75%).
+        // Vẽ TRƯỚC thân; đầu trên nằm sâu trong thân nên bị mép viền thân che,
+        // chân chui ra sạch từ dưới đáy (không còn chóp tròn nổi trên mặt thân).
+        val legBottom = h * LEG_BOTTOM_F
+        val pinCount = component.pins.size
+        val legXs = List(pinCount) { i ->
+            bodyLeft + bodyW * (i + 1).toFloat() / (pinCount + 1).toFloat()
+        }
+        legXs.forEach { x ->
+            drawLine(
+                color = LeadColor,
+                start = Offset(x, bodyBottom - LEG_START_INSIDE_DP.dp.toPx()),
+                end = Offset(x, legBottom),
+                strokeWidth = LEG_WIDTH_DP.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
+        }
+
+        // Thân (vẽ SAU chân để đè lên đầu trên của chân): đáy phẳng, hai vai bo tròn lên đỉnh (silhouette TO-92).
         val body = Path().apply {
             moveTo(bodyLeft, bodyBottom)
             lineTo(bodyLeft, shoulderY)
@@ -120,29 +137,13 @@ private fun TO92Canvas(component: Component, modifier: Modifier = Modifier) {
         drawPath(body, BodyColor)
         drawPath(body, BodyBorder, style = Stroke(width = BORDER_WIDTH_DP.dp.toPx()))
 
-        // Chân hướng xuống: chia đều chiều rộng thân (3 chân -> 25% / 50% / 75%).
-        val legBottom = h * LEG_BOTTOM_F
-        val pinCount = component.pins.size
-        val legXs = List(pinCount) { i ->
-            bodyLeft + bodyW * (i + 1).toFloat() / (pinCount + 1).toFloat()
-        }
-        legXs.forEach { x ->
-            drawLine(
-                color = LeadColor,
-                start = Offset(x, bodyBottom),
-                end = Offset(x, legBottom),
-                strokeWidth = LEG_WIDTH_DP.dp.toPx(),
-                cap = StrokeCap.Round,
-            )
-        }
-
-        // Mã linh kiện in trên mặt phẳng của thân, canh giữa ngang + giữa vùng mặt.
+        // Mã linh kiện in trên mặt phẳng của thân, canh giữa ngang + giữa thân.
         val nameLayout = textMeasurer.measure(AnnotatedString(component.name), style = nameStyle)
         drawText(
             textLayoutResult = nameLayout,
             topLeft = Offset(
                 x = bodyCenterX - nameLayout.size.width / 2f,
-                y = (shoulderY + bodyBottom) / 2f - nameLayout.size.height / 2f,
+                y = (bodyTop + bodyBottom) / 2f - nameLayout.size.height / 2f,
             ),
         )
 

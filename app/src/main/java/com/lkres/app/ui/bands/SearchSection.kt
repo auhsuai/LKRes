@@ -52,7 +52,7 @@ internal fun SearchInput(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier,
-        label = { Text("Nhập giá trị cần tìm (4700, 4,7k, 4k7)") },
+        label = { Text("Nhập giá trị cần tìm") },
         singleLine = true
     )
 }
